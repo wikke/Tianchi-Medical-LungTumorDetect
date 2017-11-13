@@ -7,27 +7,30 @@ import _pickle as pickle
 from config import *
 
 def get_tumor_records():
-    ct_numpy_files = glob('{}/*.h5'.format(CT_NUMPY_PATH))
-    def find(seriesuid):
-        for f in ct_numpy_files:
+    img_numpy_files = glob('{}/*.h5'.format(PREPROCESS_PATH))
+    meta_data = {}
+    for f in glob('{}/*.meta'.format(PREPROCESS_PATH)):
+        with open(f, 'rb') as f:
+            meta = pickle.load(f)
+            meta_data[meta['seriesuid']] = meta
+
+    def find_numpy_file(seriesuid):
+        for f in img_numpy_files:
             if f[-13:-3] == seriesuid:
                 return f
         return None
-
-    meta_data = None
-    with open(CT_META_FILE, 'rb') as f:
-        meta_data = pickle.load(f)
     def find_origin(seriesuid):
         return meta_data[seriesuid]['origin'] if seriesuid in meta_data else None
     def find_spacing(seriesuid):
         return meta_data[seriesuid]['spacing'] if seriesuid in meta_data else None
 
     records = pd.read_csv('{}/csv/train/annotations.csv'.format(DATASET_PATH))
-    records['img_numpy_file'] = records['seriesuid'].apply(find)
+    records['img_numpy_file'] = records['seriesuid'].apply(find_numpy_file)
     records['origin'] = records['seriesuid'].apply(find_origin)
     records['spacing'] = records['seriesuid'].apply(find_spacing)
 
     records.dropna(inplace=True)
+
     return records
 
 tumor_records = get_tumor_records()

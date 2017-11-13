@@ -21,11 +21,11 @@ def get_VGG_classifier():
     x = Conv3D(256, (3, 3, 3), padding='same', activation='relu')(x)
     x = Conv3D(256, (3, 3, 3), padding='same', activation='relu')(x)
     x = Conv3D(256, (3, 3, 3), padding='same', activation='relu')(x)
-    # x = MaxPooling3D(pool_size=(2, 2, 2))(x)
-    #
-    # x = Conv3D(512, (3, 3, 3), padding='same', activation='relu')(x)
-    # x = Conv3D(512, (3, 3, 3), padding='same', activation='relu')(x)
-    # x = Conv3D(512, (3, 3, 3), padding='same', activation='relu')(x)
+    x = MaxPooling3D(pool_size=(2, 2, 2))(x)
+
+    x = Conv3D(512, (3, 3, 3), padding='same', activation='relu')(x)
+    x = Conv3D(512, (3, 3, 3), padding='same', activation='relu')(x)
+    x = Conv3D(512, (3, 3, 3), padding='same', activation='relu')(x)
     x = GlobalMaxPooling3D()(x)
 
     x = Dense(32, activation='relu')(x)

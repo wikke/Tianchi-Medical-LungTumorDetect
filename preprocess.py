@@ -17,7 +17,7 @@ def preprocess():
     log_msg("start at {}".format(time.strftime('%Y/%m/%d %H:%M:%S', time.localtime(int(time.time())))))
 
     ct_files = glob('{}/*/*.mhd'.format(CF_FILES_PATH))
-    handled_ids = set([f[-13:-3] for f in glob('{}/*.h5'.format(CT_NUMPY_PATH))])
+    handled_ids = set([f[-13:-3] for f in glob('{}/*.h5'.format(PREPROCESS_PATH))])
     print('{} total, {} processed'.format(len(ct_files), len(handled_ids)))
 
     counter = 0
@@ -28,7 +28,7 @@ def preprocess():
             continue
 
         counter += 1
-        print('[{:.1f}%] process {}'.format(100 * counter / (len(ct_files) - len(handled_ids)), f))
+        print('{} process {}'.format(counter, f))
 
         itk_img = itk.ReadImage(f)
         img = itk.GetArrayFromImage(itk_img)  # (depth, height, width)
@@ -55,13 +55,15 @@ def preprocess():
 
         log_msg(meta)
 
+    print('all preprocess done')
+
 def log_msg(msg):
     with open(MSG_LOG_FILE, 'a') as f:
         f.write(str(msg) + '\n')
     print(msg)
 
 def save_to_numpy(seriesuid, img, meta):
-    file = '{}/{}'.format(CT_NUMPY_PATH, seriesuid)
+    file = '{}/{}'.format(PREPROCESS_PATH, seriesuid)
 
     with h5py.File(file + '.h5', 'w') as hf:
         hf.create_dataset('img', data=img)

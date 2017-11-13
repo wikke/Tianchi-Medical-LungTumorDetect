@@ -1,13 +1,16 @@
 # preprocessing
 BINARY_THRESHOLD = -550
-DATASET_PATH = './dataset'
-PREPROCESSING_PATH = './preprocessing'
-LOG_BASE_PATH = './output/training_logs'
-
-CT_NUMPY_PATH = '{}/mhd_numpy_2'.format(PREPROCESSING_PATH)
-CT_META_FILE = '{}/mhd_numpy/meta_file'.format(PREPROCESSING_PATH)
-MSG_LOG_FILE = '{}/log.log'.format(LOG_BASE_PATH)
 PROCESS_DONE = False
+
+DATASET_PATH = './dataset'
+CF_FILES_PATH = DATASET_PATH
+PREPROCESSING_PATH = './preprocessing'
+# PREPROCESSING_PATH = '/input/Tianchi/preprocess'
+
+CT_NUMPY_PATH = PREPROCESSING_PATH
+
+LOG_BASE_PATH = './output/training_logs'
+MSG_LOG_FILE = '{}/log.log'.format(LOG_BASE_PATH)
 
 # unet model
 INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH, INPUT_CHANNEL, OUTPUT_CHANNEL = 32, 32, 32, 1, 1

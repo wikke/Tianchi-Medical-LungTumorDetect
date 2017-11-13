@@ -3,3 +3,4 @@ pandas
 SimpleITK
 scikit-image
 h5py
+pickleshare

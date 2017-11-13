@@ -16,27 +16,30 @@ def preprocess():
     print('start preprocess')
     log_msg("start at {}".format(time.strftime('%Y/%m/%d %H:%M:%S', time.localtime(int(time.time())))))
 
-    ct_files = glob('{}/correct_images/*.mhd'.format(DATASET_PATH))
-    meta_data = {}
+    ct_files = glob('{}/*/*.mhd'.format(CF_FILES_PATH))
+    handled_ids = set([f[-13:-3] for f in glob('{}/*.h5'.format(CT_NUMPY_PATH))])
 
     for f in ct_files:
         seriesuid = f[-14:-4]
+        if seriesuid in handled_ids:
+            print('{} handled'.format(seriesuid))
+            continue
+
+        print('process {}'.format(f))
 
         itk_img = itk.ReadImage(f)
-        img = itk.GetArrayFromImage(itk_img) # (depth, height, width)原始数据，不是坐标！！！
-        img = np.transpose(img, (1, 2, 0)) # h,w,d
+        img = itk.GetArrayFromImage(itk_img)  # (depth, height, width)
+        img = np.transpose(img, (1, 2, 0))  # h,w,d
 
-        origin = np.array(itk_img.GetOrigin()) # 元点位置(x,y,z)，世界坐标(mm)
-        spacing = np.array(itk_img.GetSpacing()) # 体素之间的间隔(x,y,z)，世界坐标(mm)
+        origin = np.array(itk_img.GetOrigin()) # (x,y,z) (depth, height, width)
+        spacing = np.array(itk_img.GetSpacing())
 
         _start_time = time.time()
         img, pixels = get_lung_img(img)
         duration = time.time() - _start_time
         cover_ratio = pixels / np.prod(img.shape)
 
-        save_to_numpy('{}/{}.h5'.format(CT_NUMPY_PATH, seriesuid), img)
-
-        meta_data[seriesuid] = {
+        meta = {
             'seriesuid': seriesuid,
             'shape': img.shape,
             'origin': origin,
@@ -45,21 +48,27 @@ def preprocess():
             'cover_ratio': cover_ratio,
             'process_duration': duration,
         }
-        # log_msg('{},{},{},{},{},{:.4f},{:.2f},saved'.format(seriesuid, img.shape, origin, spacing, pixels, cover_ratio, duration))
-        log_msg(meta_data[seriesuid])
+        save_to_numpy(seriesuid, img, meta)
 
-    with open(CT_META_FILE, 'wb') as f:
-        pickle.dump(meta_data, f)
+        log_msg(meta)
+        # break
+
 
 def log_msg(msg):
     with open(MSG_LOG_FILE, 'a') as f:
         f.write(str(msg) + '\n')
-
     print(msg)
 
-def save_to_numpy(file, img):
-    with h5py.File(file, 'w') as hf:
+
+def save_to_numpy(seriesuid, img, meta):
+    file = '{}/{}'.format(CT_NUMPY_PATH, seriesuid)
+
+    with h5py.File(file + '.h5', 'w') as hf:
         hf.create_dataset('img', data=img)
+
+    with open(file + '.meta', 'wb') as f:
+        pickle.dump(meta, f)
+
 
 def get_lung_img(img):
     origin_img = img.copy()
@@ -94,20 +103,25 @@ def get_lung_img(img):
         plot_slices(img, 'keep 2 lagest connected graph')
 
     # erosion
-    img = morphology.binary_erosion(img, selem=np.ones((2, 2, 2)))
-    if DEBUG_PREPROCESS_PLOT:
-        plot_slices(img, 'erosion')
+    # img = morphology.erosion(img, selem=np.ones((2, 2, 2)))
+    # if DEBUG_PREPROCESS_PLOT:
+    #    plot_slices(img, 'erosion')
 
     # closing
-    img = morphology.binary_closing(img, selem=np.ones((8, 8, 8)))
+    img = morphology.closing(img, selem=np.ones((4, 4, 4)))
     if DEBUG_PREPROCESS_PLOT:
         plot_slices(img, 'closing')
 
     # dilation
-    # img = morphology.binary_dilation(img, selem=np.ones((8, 8, 8)))
-    # plot_slices(img, 'dilation')
+    img = morphology.dilation(img, selem=np.ones((16, 16, 16)))
+    if DEBUG_PREPROCESS_PLOT:
+        plot_slices(img, 'dilation')
+
+    if DEBUG_PREPROCESS_PLOT:
+        plot_slices(img * origin_img, 'final')
 
     return img * origin_img, np.sum(img != 0)
+
 
 if __name__ == '__main__':
     preprocess()

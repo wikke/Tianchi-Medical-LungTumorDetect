@@ -24,7 +24,7 @@ def get_tumor_records():
     def find_spacing(seriesuid):
         return meta_data[seriesuid]['spacing'] if seriesuid in meta_data else None
 
-    records = pd.read_csv('{}/csv/train/annotations.csv'.format(DATASET_PATH))
+    records = pd.read_csv('{}/train/annotations.csv'.format(ANNOTATIONS_PATH))
     records['img_numpy_file'] = records['seriesuid'].apply(find_numpy_file)
     records['origin'] = records['seriesuid'].apply(find_origin)
     records['spacing'] = records['seriesuid'].apply(find_spacing)

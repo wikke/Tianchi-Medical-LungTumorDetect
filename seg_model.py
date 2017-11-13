@@ -65,12 +65,14 @@ def evaluate_ct(model, seriesuid):
     # statistics
     intersection_whole = y_whole * pred_whole
     dice_coef = (2. * np.sum(intersection_whole) + SMOOTH) / (np.sum(y_whole) + np.sum(pred_whole) + SMOOTH)
-    print("ceof {}, loss {}".format(dice_coef, 1 - dice_coef))
+    print("ceof {:.4f}, loss {:.4f}".format(dice_coef, 1 - dice_coef))
 
     y_sum, y_count = np.sum(y_whole), np.count_nonzero(y_whole)
     pred_sum, pred_count = np.sum(pred_whole), np.count_nonzero(pred_whole)
     inter_sum, inter_count = np.sum(intersection_whole), np.count_nonzero(intersection_whole)
-    print((y_sum, y_count, pred_sum, pred_count, inter_sum, inter_count))
+    print('y y_sum {:.4f}, y_count {}'.format(y_sum, y_count))
+    print('pred_sum {:.4f}, pred_count {}'.format(pred_sum, pred_count))
+    print('inter_sum {:.4f}, inter_count {}'.format(inter_sum, y_count))
 
     # recall
     for threshold in range(0, 10, 1):
@@ -80,7 +82,7 @@ def evaluate_ct(model, seriesuid):
         dice_coef = (2. * np.sum(inter_thres) + SMOOTH) / (np.sum(y_whole) + np.sum(pred_thres) + SMOOTH)
         recall = np.sum(inter_thres) / np.sum(y_whole)
         precision = np.sum(inter_thres) / np.sum(pred_thres)
-        print("threshold {}: ceof {}, loss {}, recall {}, precision {}".format(threshold, dice_coef, 1 - dice_coef, recall, precision))
+        print("threshold {}: ceof {:.4f}, loss {:.4f}, recall {:.4f}, precision {:.4f}".format(threshold, dice_coef, 1 - dice_coef, recall, precision))
 
     # print(tumor_records)
     # print('labeling and region')

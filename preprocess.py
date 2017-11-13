@@ -16,7 +16,7 @@ def preprocess():
     print('start preprocess')
     log_msg("start at {}".format(time.strftime('%Y/%m/%d %H:%M:%S', time.localtime(int(time.time())))))
 
-    ct_files = glob('{}/*/*.mhd'.format(CF_FILES_PATH))
+    ct_files = glob('{}/*/*.mhd'.format(DATASET_PATH))
     handled_ids = set([f[-13:-3] for f in glob('{}/*.h5'.format(PREPROCESS_PATH))])
     print('{} total, {} processed'.format(len(ct_files), len(handled_ids)))
 

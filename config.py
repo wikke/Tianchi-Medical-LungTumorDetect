@@ -6,7 +6,7 @@ DATASET_PATH = './dataset'
 ANNOTATIONS_PATH = './dataset/csv'
 # ANNOTATIONS_PATH = '/input/Tianchi/dataset/csv'
 PREPROCESS_PATH = './preprocess'
-# PREPROCESS_PATH = '/input/Tianchi/preprocess3'
+# PREPROCESS_PATH = '/input/Tianchi/preprocess2'
 
 LOG_BASE_PATH = './output/training_logs'
 # LOG_BASE_PATH = '/output/training_logs'

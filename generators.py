@@ -59,7 +59,12 @@ def get_image_and_records(seriesuid):
         return None, None
 
     with h5py.File(records.iloc[0]['img_numpy_file'], 'r') as hf:
-        return hf['img'][:], records
+        img = hf['img'][:]
+
+        img[img==0] = np.min(img)
+        img = (img - np.mean(img)) / np.std(img)
+
+        return img, records
 
 def get_block(record, around_tumor=True):
     with h5py.File(record['img_numpy_file'], 'r') as hf:
@@ -75,7 +80,11 @@ def get_block(record, around_tumor=True):
         else:
             w, h, d = randint(0, W - INPUT_WIDTH - 1), randint(0, H - INPUT_HEIGHT - 1), randint(0, D - INPUT_DEPTH - 1)
 
-        return hf['img'][w:w + INPUT_WIDTH, h:h + INPUT_HEIGHT, d:d + INPUT_DEPTH]
+        block = hf['img'][w:w + INPUT_WIDTH, h:h + INPUT_HEIGHT, d:d + INPUT_DEPTH]
+        block[block==0] = np.min(hf['img'])
+        block = (block - np.mean(hf['img'])) / np.std(hf['img'])
+
+        return block
 
 def plot_batch_sample(X, y=None):
     assert X.shape[0] == y.shape[0]

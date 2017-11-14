@@ -10,10 +10,12 @@ def seg_train():
     model.summary()
 
     run = '{}-{}'.format(time.localtime().tm_hour, time.localtime().tm_min)
+    log_dir = SEG_LOG_DIR.format(run)
+    check_point = log_dir + '/checkpoint-{epoch:02d}-{val_loss:.4f}.hdf5'
 
     print("seg train round {}".format(run))
-    tensorboard = TensorBoard(log_dir=SEG_LOG_DIR.format(run), histogram_freq=0, write_grads=False, write_graph=False)
-    checkpoint = ModelCheckpoint(filepath=SEG_LOG_FILE_PATH, monitor='val_loss', verbose=1, save_best_only=True)
+    tensorboard = TensorBoard(log_dir=log_dir, histogram_freq=0, write_grads=False, write_graph=False)
+    checkpoint = ModelCheckpoint(filepath=check_point, monitor='val_loss', verbose=1, save_best_only=True)
     early_stopping = EarlyStopping(monitor='val_loss', patience=TRAIN_SEG_EARLY_STOPPING_PATIENCE, verbose=1)
     evaluator = UNetEvaluator()
     model.fit_generator(get_seg_batch(TRAIN_SEG_TRAIN_BATCH_SIZE), steps_per_epoch=TRAIN_SEG_STEPS_PER_EPOCH,

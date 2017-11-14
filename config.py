@@ -20,7 +20,6 @@ DIAMETER_SPACING_EXPAND = True
 
 # train unet
 SEG_LOG_DIR = LOG_BASE_PATH + '/seg-run-{}'
-SEG_LOG_FILE_PATH = SEG_LOG_DIR + '/checkpoint-{epoch:02d}-{val_loss:.4f}.hdf5'
 DIAMETER_BUFFER = 2
 
 TRAIN_SEG_EPOCHS = 100000000
@@ -43,7 +42,7 @@ DEBUG_MAX_TUMOR_RECORDS_READ = -1
 
 # train classifier
 CLASSIFY_LOG_DIR = LOG_BASE_PATH + '/classify-run-{}'
-CLASSIFY_LOG_FILE_PATH = CLASSIFY_LOG_DIR + '/checkpoint-{epoch:02d}-{val_loss:.4f}.hdf5'
+# CLASSIFY_LOG_FILE_PATH = CLASSIFY_LOG_DIR + '/checkpoint-{epoch:02d}-{val_loss:.4f}.hdf5'
 CLASSIFY_POSITIVE_SAMPLE_RATIO = 0.5
 
 TRAIN_CLASSIFY_EPOCHS = 100000000

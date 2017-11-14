@@ -38,9 +38,12 @@ def get_tumor_records():
 
     print('tumor record size {}'.format(records.shape))
     if DEBUG_ONLY_TRAIN_SWITCHER_ON:
-        records.drop(records[records.cover_ratio > DEBUG_ONLY_TRAIN_COVER_RATIO_BIGGER_THAN].index, axis=0, inplace=True)
-        records.drop(records[records.diameter_mm > DEBUG_ONLY_TRAIN_TUMOR_DIAMETER_LARGER_THAN].index, axis=0, inplace=True)
+        records.drop(records[records.cover_ratio < DEBUG_ONLY_TRAIN_COVER_RATIO_BIGGER_THAN].index, axis=0, inplace=True)
+        records.drop(records[records.diameter_mm < DEBUG_ONLY_TRAIN_TUMOR_DIAMETER_LARGER_THAN].index, axis=0, inplace=True)
         print('after drop, tumor record size {}'.format(records.shape))
+
+    if RANDOMIZE_RECORDS:
+        records = records.iloc[np.random.permutation(records.shape[0])]
 
     return records
 
@@ -55,12 +58,8 @@ def get_image_and_records(seriesuid):
         print('eva ct, no records of seriesuid {}'.format(seriesuid))
         return None, None
 
-    img = None
     with h5py.File(records.iloc[0]['img_numpy_file'], 'r') as hf:
-        img = np.zeros(hf['img'].shape)
-        img[:] = hf['img'][:]
-
-    return img / DEBUG_IMAGE_STD, records
+        return hf['img'][:], records
 
 def get_block(record, around_tumor=True):
     with h5py.File(record['img_numpy_file'], 'r') as hf:
@@ -76,7 +75,7 @@ def get_block(record, around_tumor=True):
         else:
             w, h, d = randint(0, W - INPUT_WIDTH - 1), randint(0, H - INPUT_HEIGHT - 1), randint(0, D - INPUT_DEPTH - 1)
 
-        return hf['img'][w:w + INPUT_WIDTH, h:h + INPUT_HEIGHT, d:d + INPUT_DEPTH] / DEBUG_IMAGE_STD
+        return hf['img'][w:w + INPUT_WIDTH, h:h + INPUT_HEIGHT, d:d + INPUT_DEPTH]
 
 def plot_batch_sample(X, y=None):
     assert X.shape[0] == y.shape[0]

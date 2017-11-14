@@ -36,9 +36,6 @@ def evaluate_ct(model, seriesuid):
         X_whole = X_whole[coord[0]:coord[0]+INPUT_WIDTH, coord[1]:coord[1]+INPUT_HEIGHT, coord[2]:coord[2]+INPUT_DEPTH]
         print('PART_EVALUATE DEBUG ENABLED: X_whole shape {}'.format(X_whole.shape))
 
-    # print(X_whole.shape)
-    # plot_slices(X_whole)
-
     y_whole = np.zeros(X_whole.shape)
     for i in range(tumor_records.shape[0]):
         record = tumor_records.iloc[i]
@@ -60,7 +57,6 @@ def evaluate_ct(model, seriesuid):
                 coord[1] - radius[1]:coord[1] + radius[1] + 1,
                 coord[2] - radius[2]:coord[2] + radius[2] + 1] = 1.0
 
-    # print('calculating')
     pred_whole = np.zeros(X_whole.shape)
     for w in range(0, X_whole.shape[0] - INPUT_WIDTH + 1, INPUT_WIDTH):
         for h in range(0, X_whole.shape[1] - INPUT_HEIGHT + 1, INPUT_HEIGHT):
@@ -70,7 +66,6 @@ def evaluate_ct(model, seriesuid):
                 _pred = model.predict(_x)
                 pred_whole[w:w + INPUT_WIDTH, h:h + INPUT_HEIGHT, d:d + INPUT_DEPTH] = _pred[0,:,:,:,0]
 
-    # statistics
     intersection_whole = y_whole * pred_whole
     dice_coef = (2. * np.sum(intersection_whole) + SMOOTH) / (np.sum(y_whole) + np.sum(pred_whole) + SMOOTH)
     print("ceof {:.4f}, loss {:.4f}".format(dice_coef, 1 - dice_coef))
@@ -80,10 +75,9 @@ def evaluate_ct(model, seriesuid):
     inter_sum, inter_count = np.sum(intersection_whole), np.count_nonzero(intersection_whole)
     print('y y_sum {:.4f}, y_count {}'.format(y_sum, y_count))
     print('pred_sum {:.4f}, pred_count {}'.format(pred_sum, pred_count))
-    print('inter_sum {:.4f}, inter_count {}'.format(inter_sum, y_count))
+    print('inter_sum {:.4f}, inter_count {}'.format(inter_sum, inter_count))
 
-    # recall
-    for threshold in range(0, 10, 1):
+    for threshold in range(0, 10, 2):
         threshold = threshold / 10.0
         pred_thres = (pred_whole > threshold).astype(np.uint8)
         inter_thres = y_whole * pred_thres
@@ -92,79 +86,32 @@ def evaluate_ct(model, seriesuid):
         precision = np.sum(inter_thres) / np.sum(pred_thres)
         print("threshold {}: ceof {:.4f}, loss {:.4f}, recall {:.4f}, precision {:.4f}".format(threshold, dice_coef, 1 - dice_coef, recall, precision))
 
-    # print(tumor_records)
-    # print('labeling and region')
     regions = measure.regionprops(measure.label(pred_whole))
     print('Num of pred regions {}'.format(len(regions)))
 
-    for region in regions:
-        properties = {
-            'area': region.area,
-            'bbox': region.bbox,
-            'centroid': region.centroid,
-            # 'coords': region.coords,
-            'equivalent_diameter': region.equivalent_diameter,
-            'extent': region.extent,
-            'filled_area': region.filled_area,
-            'label': region.label,
-        }
-        print(properties)
+    # for region in regions:
+    #     properties = {
+    #         'area': region.area,
+    #         'bbox': region.bbox,
+    #         'centroid': region.centroid,
+    #         # 'coords': region.coords,
+    #         'equivalent_diameter': region.equivalent_diameter,
+    #         'extent': region.extent,
+    #         'filled_area': region.filled_area,
+    #         'label': region.label,
+    #     }
+    #     print(properties)
 
-    # plot_result(X_whole, y_whole, pred_whole)
+    # plot_comparison(X_whole, y_whole, pred_whole)
 
 class UNetEvaluator(Callback):
-    # def __init__(self):
-    #     self.generator = get_batch(1, return_info=True)
+    def __init__(self):
+        self.counter = 0
 
     def on_epoch_end(self, epoch, logs=None):
-        evaluate_ct(self.model, 'LKDS-00052')
-
-    def on_epoch_end_old(self, epoch, logs=None):
-        print('Evaluating on fixed item, the first one')
-        X, y = next(get_seg_batch(1))
-        pred = self.model.predict(X)
-
-        X, y, pred = X[0,:,:,:,0], y[0,:,:,:,0], pred[0,:,:,:,0]
-        # print(info)
-
-        y_, pred_ = y.reshape((-1)), pred.reshape((-1))
-        intersection = np.sum(y_ * pred_)
-        cover_ratio = (2. * intersection + SMOOTH) / (np.sum(y_) + np.sum(pred_) + SMOOTH)
-        loss = 1 - cover_ratio
-        print("cover {}, loss {}".format(cover_ratio, loss))
-
-        labels = measure.label(pred)
-        regions = measure.regionprops(labels)
-        print('Num of regions {}'.format(len(regions)))
-
-        for region in regions:
-            properties = {
-                'area': region.area,
-                'bbox': region.bbox,
-                'centroid': region.centroid,
-                # 'convex_area': region.convex_area,
-                'coords': region.coords,
-                # 'eccentricity': region.eccentricity,
-                'equivalent_diameter': region.equivalent_diameter,
-                # 'euler_number': region.euler_number,
-                'extent': region.extent,
-                'filled_area': region.filled_area,
-                'label': region.label,
-                # 'local_centroid': region.local_centroid,
-                # 'major_axis_length': region.major_axis_length,
-                # 'max_intensity': region.max_intensity,
-                # 'mean_intensity': region.mean_intensity,
-                # 'min_intensity': region.min_intensity,
-                # 'orientation': region.orientation,
-                # 'perimeter': region.perimeter,
-                # 'solidity': region.solidity,
-                # 'perimeter': region.perimeter,
-                # 'perimeter': region.perimeter,
-                # 'perimeter': region.perimeter,
-            }
-            print(properties)
-
-        plot_comparison(X, y, pred, title='evaluate')
+        self.counter += 1
+        if self.counter % TRAIN_SEG_EVALUATE_FREQ == 0:
+            evaluate_ct(self.model, 'LKDS-00052')
 
 def get_unet():
     inputs = Input((INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH, INPUT_CHANNEL))

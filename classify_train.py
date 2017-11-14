@@ -14,7 +14,7 @@ def classify_train():
     check_point = log_dir + '/checkpoint-{epoch:02d}-{val_loss:.4f}.hdf5'
 
     print("classify train round {}".format(run))
-    tensorboard = TensorBoard(log_dir=log_dir, histogram_freq=0, write_grads=False, write_graph=False)
+    tensorboard = TensorBoard(log_dir=log_dir, write_graph=False)
     checkpoint = ModelCheckpoint(filepath=check_point, monitor='val_loss', verbose=1, save_best_only=True)
     early_stopping = EarlyStopping(monitor='val_loss', patience=TRAIN_CLASSIFY_EARLY_STOPPING_PATIENCE, verbose=1)
 

@@ -31,9 +31,9 @@ def evaluate_ct(model, seriesuid):
         record = tumor_records.iloc[0]
         coord = np.array([record['coordX'], record['coordY'], record['coordZ']])
         coord = np.abs((coord - record['origin']) / record['spacing'])
-        coord = coord - np.array([INPUT_HEIGHT // 2, INPUT_WIDTH // 2, INPUT_DEPTH // 2])
+        coord = coord - np.array([INPUT_WIDTH // 2, INPUT_HEIGHT // 2, INPUT_DEPTH // 2])
         coord = coord.astype(np.uint16)
-        X_whole = X_whole[coord[0]:coord[0]+INPUT_HEIGHT, coord[1]:coord[1]+INPUT_WIDTH, coord[2]:coord[2]+INPUT_DEPTH]
+        X_whole = X_whole[coord[0]:coord[0]+INPUT_WIDTH, coord[1]:coord[1]+INPUT_HEIGHT, coord[2]:coord[2]+INPUT_DEPTH]
         print('PART_EVALUATE DEBUG ENABLED: X_whole shape {}'.format(X_whole.shape))
 
     # print(X_whole.shape)
@@ -46,21 +46,29 @@ def evaluate_ct(model, seriesuid):
         coord = np.abs((coord - record['origin']) / record['spacing']).astype(np.uint16)
 
         if DEBUG_PART_EVALUATE_CALLBACK:
-            coord = np.array([INPUT_HEIGHT//2, INPUT_WIDTH//2, INPUT_DEPTH//2])
+            coord = np.array([INPUT_WIDTH//2, INPUT_HEIGHT//2, INPUT_DEPTH//2])
 
-        radius = int(record['diameter_mm'] // 2 + DIAMETER_BUFFER)
-        # TODO out of bound???
-        y_whole[coord[0]-radius:coord[0]+radius+1, coord[1]-radius:coord[1]+radius+1, coord[2]-radius:coord[2]+radius+1] = 1.0
+        r = record['diameter_mm'] / 2 + DIAMETER_BUFFER
+        radius = np.array([r, r, r])
+
+        if DIAMETER_SPACING_EXPAND:
+            radius = radius / record['spacing']
+
+        radius = radius.astype(np.uint16)
+
+        y_whole[coord[0] - radius[0]:coord[0] + radius[0] + 1,
+                coord[1] - radius[1]:coord[1] + radius[1] + 1,
+                coord[2] - radius[2]:coord[2] + radius[2] + 1] = 1.0
 
     # print('calculating')
     pred_whole = np.zeros(X_whole.shape)
-    for h in range(0, X_whole.shape[0] - INPUT_HEIGHT + 1, INPUT_HEIGHT):
-        for w in range(0, X_whole.shape[1] - INPUT_WIDTH + 1, INPUT_WIDTH):
+    for w in range(0, X_whole.shape[0] - INPUT_WIDTH + 1, INPUT_WIDTH):
+        for h in range(0, X_whole.shape[1] - INPUT_HEIGHT + 1, INPUT_HEIGHT):
             for d in range(0, X_whole.shape[2] - INPUT_DEPTH + 1, INPUT_DEPTH):
                 # print('in {}'.format((h,w,d)))
-                _x = np.expand_dims(np.expand_dims(X_whole[h:h+INPUT_HEIGHT, w:w+INPUT_WIDTH, d:d+INPUT_DEPTH], axis=-1), axis=0)
+                _x = np.expand_dims(np.expand_dims(X_whole[w:w+INPUT_WIDTH, h:h+INPUT_HEIGHT, d:d+INPUT_DEPTH], axis=-1), axis=0)
                 _pred = model.predict(_x)
-                pred_whole[h:h + INPUT_HEIGHT, w:w + INPUT_WIDTH, d:d + INPUT_DEPTH] = _pred[0,:,:,:,0]
+                pred_whole[w:w + INPUT_WIDTH, h:h + INPUT_HEIGHT, d:d + INPUT_DEPTH] = _pred[0,:,:,:,0]
 
     # statistics
     intersection_whole = y_whole * pred_whole

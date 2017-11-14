@@ -7,29 +7,35 @@ import _pickle as pickle
 from config import *
 
 def get_tumor_records():
-    img_numpy_files = glob('{}/*.h5'.format(PREPROCESS_PATH))
-    meta_data = {}
+    numpy_files = glob('{}/*.h5'.format(PREPROCESS_PATH))
+    meta_dict = {}
     for f in glob('{}/*.meta'.format(PREPROCESS_PATH)):
         with open(f, 'rb') as f:
             meta = pickle.load(f)
-            meta_data[meta['seriesuid']] = meta
+            meta_dict[meta['seriesuid']] = meta
 
-    def find_numpy_file(seriesuid):
-        for f in img_numpy_files:
+    fields = ['img_numpy_file', 'origin', 'spacing', 'shape', 'pixels', 'cover_ratio', 'process_duration']
+    def fill_info(seriesuid):
+        data = [None] * len(fields)
+
+        for f in numpy_files:
             if f[-13:-3] == seriesuid:
-                return f
-        return None
-    def find_origin(seriesuid):
-        return meta_data[seriesuid]['origin'] if seriesuid in meta_data else None
-    def find_spacing(seriesuid):
-        return meta_data[seriesuid]['spacing'] if seriesuid in meta_data else None
+                data[0] = f
+
+        if seriesuid in meta_dict:
+            t = meta_dict[seriesuid]
+            data[1:] = [t['origin'], t['spacing'], t['shape'], t['pixels'], t['cover_ratio'], t['process_duration']]
+
+        return pd.Series(data, index=fields)
 
     records = pd.read_csv('{}/train/annotations.csv'.format(ANNOTATIONS_PATH))
-    records['img_numpy_file'] = records['seriesuid'].apply(find_numpy_file)
-    records['origin'] = records['seriesuid'].apply(find_origin)
-    records['spacing'] = records['seriesuid'].apply(find_spacing)
-
+    records[fields] = records['seriesuid'].apply(fill_info)
     records.dropna(inplace=True)
+
+    print('before drop, record size {}'.format(records.shape))
+    records.drop(records[records.cover_ratio > DEBUG_ONLY_TRAIN_COVER_RATIO_BIGGER_THAN].index, axis=0, inplace=True)
+    records.drop(records[records.diameter_mm > DEBUG_ONLY_TRAIN_TUMOR_DIAMETER_LARGER_THAN].index, axis=0, inplace=True)
+    print('after drop, record size {}'.format(records.shape))
 
     return records
 
@@ -53,21 +59,20 @@ def get_image_and_records(seriesuid):
 
 def get_block(record, around_tumor=True):
     with h5py.File(record['img_numpy_file'], 'r') as hf:
-        H, W, D = hf['img'].shape[0], hf['img'].shape[1], hf['img'].shape[2]
+        W, H, D = hf['img'].shape[0], hf['img'].shape[1], hf['img'].shape[2]
 
         if around_tumor:
             coord = np.array([record['coordX'], record['coordY'], record['coordZ']])
             coord = np.abs((coord - record['origin']) / record['spacing'])
-            h, w, d = int(coord[0] - INPUT_HEIGHT // 2), int(coord[1] - INPUT_WIDTH // 2), int(coord[2] - INPUT_DEPTH // 2)
+            w, h, d = int(coord[0] - INPUT_WIDTH // 2), int(coord[1] - INPUT_HEIGHT // 2), int(coord[2] - INPUT_DEPTH // 2)
 
-            h, w, d = max(h, 0), max(w, 0), max(d, 0)
-            h, w, d = min(h, H - INPUT_HEIGHT - 1), min(w, W - INPUT_WIDTH - 1), min(d, D - INPUT_DEPTH - 1)
+            w, h, d = max(w, 0), max(h, 0), max(d, 0)
+            w, h, d = min(w, W - INPUT_WIDTH - 1), min(h, H - INPUT_HEIGHT - 1), min(d, D - INPUT_DEPTH - 1)
         else:
-            h, w, d = randint(0, H - INPUT_HEIGHT - 1), randint(0, W - INPUT_WIDTH - 1), randint(0, D - INPUT_DEPTH - 1)
+            w, h, d = randint(0, W - INPUT_WIDTH - 1), randint(0, H - INPUT_HEIGHT - 1), randint(0, D - INPUT_DEPTH - 1)
 
-        return hf['img'][h:h + INPUT_HEIGHT, w:w + INPUT_WIDTH, d:d + INPUT_DEPTH] / DEBUG_IMAGE_STD
+        return hf['img'][w:w + INPUT_WIDTH, h:h + INPUT_HEIGHT, d:d + INPUT_DEPTH] / DEBUG_IMAGE_STD
 
-# TODO enchanced? rotate, random.
 def get_seg_batch(batch_size=32):
     idx = 0
     X = np.zeros((batch_size, INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH, INPUT_CHANNEL))
@@ -87,16 +92,23 @@ def get_seg_batch(batch_size=32):
         yield X, y
 
 def make_seg_mask(record):
-    mask = np.zeros((INPUT_HEIGHT, INPUT_WIDTH, INPUT_DEPTH))
-    radius = int(record['diameter_mm'] // 2 + DIAMETER_BUFFER)
+    mask = np.zeros((INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH))
 
-    mask[INPUT_HEIGHT//2-radius:INPUT_HEIGHT//2+radius,
-         INPUT_WIDTH//2-radius:INPUT_WIDTH//2+radius,
-         INPUT_DEPTH//2-radius:INPUT_DEPTH//2+radius] = 1.0
+    r = record['diameter_mm'] / 2  + DIAMETER_BUFFER
+    radius = np.array([r, r, r])
+
+    if DIAMETER_SPACING_EXPAND:
+        radius = radius / record['spacing']
+
+    coord = np.array([INPUT_WIDTH / 2, INPUT_HEIGHT / 2, INPUT_DEPTH / 2])
+    radius, coord = radius.astype(np.uint16), coord.astype(np.uint16)
+
+    mask[coord[0] - radius[0]:coord[0] + radius[0] + 1,
+         coord[1] - radius[1]:coord[1] + radius[1] + 1,
+         coord[2] - radius[2]:coord[2] + radius[2] + 1] = 1.0
 
     return mask
 
-# TODO enchanced? rotate???
 # [1, 0], positive sample
 # [0, 1], negative sample
 def get_classify_batch(batch_size=32):

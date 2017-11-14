@@ -4,5 +4,3 @@ SimpleITK>=1.0.0
 scikit-image>=0.13.0
 h5py>=2.7.0
 pickleshare>=0.7.4
-keras>=2.0.9
-tensorflow>=1.4.0

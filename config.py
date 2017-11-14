@@ -6,7 +6,7 @@ DATASET_PATH = './dataset'
 ANNOTATIONS_PATH = './dataset/csv'
 # ANNOTATIONS_PATH = '/input/Tianchi/dataset/csv'
 PREPROCESS_PATH = './preprocess'
-# PREPROCESS_PATH = '/input/Tianchi/preprocess'
+# PREPROCESS_PATH = '/input/Tianchi/preprocess2'
 
 LOG_BASE_PATH = './output/training_logs'
 # LOG_BASE_PATH = '/output/training_logs'
@@ -19,8 +19,7 @@ INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH, INPUT_CHANNEL, OUTPUT_CHANNEL = 64, 64, 
 DIAMETER_SPACING_EXPAND = True
 
 # train unet
-SEG_NET_TRAIN_ROUND = 1
-SEG_LOG_DIR = '{}/seg-run-{}'.format(LOG_BASE_PATH, SEG_NET_TRAIN_ROUND)
+SEG_LOG_DIR = LOG_BASE_PATH + '/seg-run-{}'
 SEG_LOG_FILE_PATH = SEG_LOG_DIR + '/checkpoint-{epoch:02d}-{val_loss:.4f}.hdf5'
 DIAMETER_BUFFER = 2
 
@@ -43,8 +42,7 @@ DEBUG_PLOT_WHEN_GET_BATCH = False
 DEBUG_MAX_TUMOR_RECORDS_READ = -1
 
 # train classifier
-CLASSIFY_TRAIN_ROUND = 1
-CLASSIFY_LOG_DIR = '{}/classify-run-{}'.format(LOG_BASE_PATH, SEG_NET_TRAIN_ROUND)
+CLASSIFY_LOG_DIR = LOG_BASE_PATH + '/classify-run-{}'
 CLASSIFY_LOG_FILE_PATH = CLASSIFY_LOG_DIR + '/checkpoint-{epoch:02d}-{val_loss:.4f}.hdf5'
 CLASSIFY_POSITIVE_SAMPLE_RATIO = 0.5
 

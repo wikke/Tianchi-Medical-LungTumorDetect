@@ -2,14 +2,17 @@ from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping
 from config import *
 from generators import get_classify_batch
 from classify_model import get_VGG_classifier
+import time
 
 def classify_train():
     print('start classify_train')
     model = get_VGG_classifier()
     model.summary()
 
-    print("TRAIN_ROUND {}".format(CLASSIFY_TRAIN_ROUND))
-    tensorboard = TensorBoard(log_dir=CLASSIFY_LOG_DIR, histogram_freq=0, write_grads=False, write_graph=False)
+    run = '{}-{}'.format(time.localtime().tm_hour, time.localtime().tm_min)
+
+    print("classify train round {}".format(run))
+    tensorboard = TensorBoard(log_dir=CLASSIFY_LOG_DIR.format(run), histogram_freq=0, write_grads=False, write_graph=False)
     checkpoint = ModelCheckpoint(filepath=CLASSIFY_LOG_FILE_PATH, monitor='val_loss', verbose=1, save_best_only=True)
     early_stopping = EarlyStopping(monitor='val_loss', patience=TRAIN_CLASSIFY_EARLY_STOPPING_PATIENCE, verbose=1)
 

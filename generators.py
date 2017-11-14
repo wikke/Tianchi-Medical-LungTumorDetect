@@ -15,6 +15,9 @@ def get_tumor_records():
             meta = pickle.load(f)
             meta_dict[meta['seriesuid']] = meta
 
+            if DEBUG_MAX_TUMOR_RECORDS_READ != -1 and len(meta_dict) >= DEBUG_MAX_TUMOR_RECORDS_READ:
+                break
+
     fields = ['img_numpy_file', 'origin', 'spacing', 'shape', 'pixels', 'cover_ratio', 'process_duration']
     def fill_info(seriesuid):
         data = [None] * len(fields)
@@ -76,8 +79,10 @@ def get_block(record, around_tumor=True):
         return hf['img'][w:w + INPUT_WIDTH, h:h + INPUT_HEIGHT, d:d + INPUT_DEPTH] / DEBUG_IMAGE_STD
 
 def plot_batch_sample(X, y=None):
-    X, y = X[0,:,:,:,0], y[0,:,:,:,0]
-    plot_middle_slices_comparison([X, y])
+    assert X.shape[0] == y.shape[0]
+
+    for b in range(X.shape[0]):
+        plot_middle_slices_comparison([X[b, :, :, :, 0], y[b, :, :, :, 0]])
 
 def get_seg_batch(batch_size=32):
     idx = 0

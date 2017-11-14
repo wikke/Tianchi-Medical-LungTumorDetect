@@ -32,9 +32,9 @@ def preprocess():
 
         itk_img = itk.ReadImage(f)
         img = itk.GetArrayFromImage(itk_img)  # (depth, height, width)
-        img = np.transpose(img, (1, 2, 0))  # h,w,d
+        img = np.transpose(img, (2, 1, 0))  # (width, height, depth)
 
-        origin = np.array(itk_img.GetOrigin()) # (x,y,z) (depth, height, width)
+        origin = np.array(itk_img.GetOrigin())
         spacing = np.array(itk_img.GetSpacing())
 
         _start_time = time.time()

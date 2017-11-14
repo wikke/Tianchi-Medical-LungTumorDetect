@@ -5,6 +5,7 @@ import h5py
 from random import randint
 import _pickle as pickle
 from config import *
+from visual_utils import plot_middle_slices_comparison
 
 def get_tumor_records():
     numpy_files = glob('{}/*.h5'.format(PREPROCESS_PATH))
@@ -32,10 +33,11 @@ def get_tumor_records():
     records[fields] = records['seriesuid'].apply(fill_info)
     records.dropna(inplace=True)
 
-    print('before drop, record size {}'.format(records.shape))
-    records.drop(records[records.cover_ratio > DEBUG_ONLY_TRAIN_COVER_RATIO_BIGGER_THAN].index, axis=0, inplace=True)
-    records.drop(records[records.diameter_mm > DEBUG_ONLY_TRAIN_TUMOR_DIAMETER_LARGER_THAN].index, axis=0, inplace=True)
-    print('after drop, record size {}'.format(records.shape))
+    print('tumor record size {}'.format(records.shape))
+    if DEBUG_ONLY_TRAIN_SWITCHER_ON:
+        records.drop(records[records.cover_ratio > DEBUG_ONLY_TRAIN_COVER_RATIO_BIGGER_THAN].index, axis=0, inplace=True)
+        records.drop(records[records.diameter_mm > DEBUG_ONLY_TRAIN_TUMOR_DIAMETER_LARGER_THAN].index, axis=0, inplace=True)
+        print('after drop, tumor record size {}'.format(records.shape))
 
     return records
 
@@ -73,6 +75,10 @@ def get_block(record, around_tumor=True):
 
         return hf['img'][w:w + INPUT_WIDTH, h:h + INPUT_HEIGHT, d:d + INPUT_DEPTH] / DEBUG_IMAGE_STD
 
+def plot_batch_sample(X, y=None):
+    X, y = X[0,:,:,:,0], y[0,:,:,:,0]
+    plot_middle_slices_comparison([X, y])
+
 def get_seg_batch(batch_size=32):
     idx = 0
     X = np.zeros((batch_size, INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH, INPUT_CHANNEL))
@@ -88,6 +94,9 @@ def get_seg_batch(batch_size=32):
 
             if not DEBUG_SEG_TRY_OVERFIT:
                 idx = idx + 1 if idx < tumor_records.shape[0] - 1 else 0
+
+        if DEBUG_PLOT_WHEN_GET_BATCH:
+            plot_batch_sample(X, y)
 
         yield X, y
 

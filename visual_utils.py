@@ -22,6 +22,27 @@ def plot_slices(img, title='', box=None):
     axs[0,0].set(title=title)
     plt.show()
 
+def plot_middle_slices_comparison(imgs):
+    shape = None
+    for img in imgs:
+        if shape is None:
+            shape = img.shape
+        else:
+            if shape != img.shape:
+                print('plot_middle_slices_comparison with images have different size, former {}, now {}'.format(shape, img.shape))
+                return
+
+    l = len(imgs)
+    row = 3
+    fig, axs = plt.subplots(row, l, figsize=(10, 15), sharex=True, sharey=True)
+    for r in range(row):
+        for i in range(l):
+            offset = (r - 1) * 3
+            depth = int(imgs[i].shape[2] / 2 + offset)
+            axs[r][i].imshow(imgs[i][:, :, depth], cmap='gray')
+
+    plt.show()
+
 def plot_comparison(X, y, pred, title='', box=None):
     print(title)
 
@@ -43,4 +64,3 @@ def plot_comparison(X, y, pred, title='', box=None):
     axs[1].set(title='y')
     axs[2].set(title='pred')
     plt.show()
-

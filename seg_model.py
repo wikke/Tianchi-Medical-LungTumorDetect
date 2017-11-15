@@ -1,8 +1,9 @@
 from keras.models import Model
-from keras.layers import Input, Conv3D, MaxPooling3D, UpSampling3D
-from keras.layers.merge import concatenate
-from keras import backend as K
+from keras.layers import Input, Conv3D, MaxPooling3D, UpSampling3D, concatenate
 from keras.callbacks import Callback
+from keras.optimizers import Adam
+from keras import backend as K
+
 from config import *
 from generators import get_seg_batch, get_image_and_records
 from skimage import morphology, measure, segmentation
@@ -155,7 +156,7 @@ def get_unet():
 
     model = Model(inputs=inputs, outputs=conv10)
 
-    model.compile(optimizer='adam', loss=dice_coef_loss) # , metrics=[dice_coef]
+    model.compile(optimizer=Adam(lr=TRAIN_SEG_LEARNING_RATE), loss=dice_coef_loss, metrics=[dice_coef])
 
     return model
 

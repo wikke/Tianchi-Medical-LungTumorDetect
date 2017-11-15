@@ -1,5 +1,6 @@
 from keras.models import Model
 from keras.layers import Input, Conv3D, MaxPooling3D, Dense, GlobalMaxPooling3D, Dropout
+from keras.optimizers import Adam
 from config import *
 
 def get_VGG_classifier():
@@ -33,7 +34,7 @@ def get_VGG_classifier():
     x = Dense(2, activation='softmax')(x)
 
     model = Model(inputs=inputs, outputs=x)
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    model.compile(optimizer=Adam(lr=TRAIN_CLASSIFY_LEARNING_RATE), loss='binary_crossentropy', metrics=['accuracy'])
 
     return model
 

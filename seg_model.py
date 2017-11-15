@@ -158,3 +158,7 @@ def get_unet():
     model.compile(optimizer='adam', loss=dice_coef_loss) # , metrics=[dice_coef]
 
     return model
+
+if __name__ == '__main__':
+    model = get_unet()
+    model.summary()

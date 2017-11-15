@@ -62,7 +62,8 @@ def get_image_and_records(seriesuid):
         img = hf['img'][:]
 
         img[img==0] = np.min(img)
-        img = (img - np.mean(img)) / np.std(img)
+        img = (img - MIN_BOUND) / (MAX_BOUND - MIN_BOUND)
+        img = np.clip(img, 0.0, 1.0)
 
         return img, records
 
@@ -82,7 +83,8 @@ def get_block(record, around_tumor=True):
 
         block = hf['img'][w:w + INPUT_WIDTH, h:h + INPUT_HEIGHT, d:d + INPUT_DEPTH]
         block[block==0] = np.min(hf['img'])
-        block = (block - np.mean(hf['img'])) / np.std(hf['img'])
+        block = (block - MIN_BOUND) / (MAX_BOUND - MIN_BOUND)
+        block = np.clip(block, 0.0, 1.0)
 
         return block
 

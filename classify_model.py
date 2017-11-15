@@ -38,5 +38,5 @@ def get_VGG_classifier():
     return model
 
 if __name__ == '__main__':
-    n = get_VGG_classifier()
-    n.summary()
+    model = get_VGG_classifier()
+    model.summary()

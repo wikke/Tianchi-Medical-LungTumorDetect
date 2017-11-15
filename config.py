@@ -1,6 +1,8 @@
 # preprocessing
 BINARY_THRESHOLD = -550
 PROCESS_DONE = True
+MIN_BOUND = -1000.0
+MAX_BOUND = 400.0
 
 DATASET_PATH = './dataset'
 ANNOTATIONS_PATH = './dataset/csv'

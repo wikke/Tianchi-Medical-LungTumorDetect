@@ -4,7 +4,7 @@ from keras.callbacks import Callback
 from keras.optimizers import Adam
 from keras import backend as K
 from config import *
-from generators import get_seg_batch, get_image_and_records
+from generators import get_seg_batch, get_random_image_and_records
 from skimage import morphology, measure, segmentation
 from visual_utils import plot_slices, plot_comparison
 import numpy as np
@@ -35,15 +35,15 @@ def metrics_pred_min(y_true, y_pred):
 def metrics_pred_mean(y_true, y_pred):
     return K.mean(y_pred)
 
-def evaluate_ct(model, seriesuid):
+def evaluate_ct(model):
     print('************ Evaluating ************')
-    X_whole, tumor_records = get_image_and_records(seriesuid)
+    X_whole, records = get_random_image_and_records()
     if X_whole is None:
         print('no records')
         return
 
     if TRAIN_SEG_EVALUATE_ONLY_TUMOR:
-        record = tumor_records.iloc[0]
+        record = records.iloc[0]
         coord = np.array([record['coordX'], record['coordY'], record['coordZ']])
         coord = np.abs((coord - record['origin']) / record['spacing'])
         coord = coord - np.array([INPUT_WIDTH // 2, INPUT_HEIGHT // 2, INPUT_DEPTH // 2])
@@ -52,8 +52,8 @@ def evaluate_ct(model, seriesuid):
         print('PART_EVALUATE DEBUG ENABLED: X_whole shape {}'.format(X_whole.shape))
 
     y_whole = np.zeros(X_whole.shape)
-    for i in range(tumor_records.shape[0]):
-        record = tumor_records.iloc[i]
+    for i in range(records.shape[0]):
+        record = records.iloc[i]
         coord = np.array([record['coordX'], record['coordY'], record['coordZ']])
         coord = np.abs((coord - record['origin']) / record['spacing']).astype(np.uint16)
 
@@ -71,6 +71,9 @@ def evaluate_ct(model, seriesuid):
         y_whole[coord[0] - radius[0]:coord[0] + radius[0] + 1,
                 coord[1] - radius[1]:coord[1] + radius[1] + 1,
                 coord[2] - radius[2]:coord[2] + radius[2] + 1] = 1.0
+
+        if TRAIN_SEG_EVALUATE_ONLY_TUMOR:
+            break
 
     pred_whole = np.zeros(X_whole.shape)
     for w in range(0, X_whole.shape[0] - INPUT_WIDTH + 1, INPUT_WIDTH):
@@ -117,7 +120,11 @@ def evaluate_ct(model, seriesuid):
     #     }
     #     print(properties)
 
-    # plot_comparison(X_whole, y_whole, pred_whole)
+    if DEBUG_PLOT_WHEN_EVALUATING_SEG:
+        plot_comparison(X_whole, y_whole, pred_whole)
+        plot_slices(X_whole)
+        plot_slices(y_whole)
+        plot_slices(pred_whole)
 
 class UNetEvaluator(Callback):
     def __init__(self):
@@ -126,7 +133,7 @@ class UNetEvaluator(Callback):
     def on_epoch_end(self, epoch, logs=None):
         self.counter += 1
         if self.counter % TRAIN_SEG_EVALUATE_FREQ == 0:
-            evaluate_ct(self.model, 'LKDS-00052')
+            evaluate_ct(self.model)
 
 def get_unet():
     return get_simplified_unet() if USE_SIMPLIFIED_UNET else get_full_unet()

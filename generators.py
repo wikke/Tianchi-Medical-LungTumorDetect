@@ -69,18 +69,17 @@ if tumor_records.shape[0] == 0:
     print('no tumor records, generator cannot work')
     exit()
 
-def get_image_and_records(seriesuid):
-    records = tumor_records[tumor_records['seriesuid'] == seriesuid]
-    if records.shape[0] == 0:
-        print('eva ct, no records of seriesuid {}'.format(seriesuid))
-        return None, None
+def get_random_image_and_records():
+    numpy_file = tumor_records.iloc[randint(0, tumor_records.shape[0]-1)]['img_numpy_file']
 
-    with h5py.File(records.iloc[0]['img_numpy_file'], 'r') as hf:
+    with h5py.File(numpy_file, 'r') as hf:
         img = hf['img'][:]
 
         img[img==0] = np.min(img)
         img = (img - MIN_BOUND) / (MAX_BOUND - MIN_BOUND)
         img = np.clip(img, 0.0, 1.0)
+
+        records = tumor_records[tumor_records['img_numpy_file'] == numpy_file]
 
         return img, records
 
@@ -127,7 +126,7 @@ def get_seg_batch(batch_size=32):
             if not DEBUG_SEG_TRY_OVERFIT:
                 idx = idx + 1 if idx < tumor_records.shape[0] - 1 else 0
 
-        if DEBUG_PLOT_WHEN_GET_BATCH:
+        if DEBUG_PLOT_WHEN_GETTING_SEG_BATCH:
             plot_batch_sample(X, y)
 
         yield X, y

@@ -73,18 +73,18 @@ def save_to_numpy(seriesuid, img, meta):
 
 def get_lung_img(img):
     origin_img = img.copy()
-    if DEBUG_PREPROCESS_PLOT:
+    if DEBUG_PLOT_WHEN_PREPROCESSING:
         plot_slices(img, 'origin')
 
     # binary
     img = img < BINARY_THRESHOLD
-    if DEBUG_PREPROCESS_PLOT:
+    if DEBUG_PLOT_WHEN_PREPROCESSING:
         plot_slices(img, 'binary')
 
     # clear_border
     for c in range(img.shape[2]):
         img[:, :, c] = segmentation.clear_border(img[:, :, c])
-    if DEBUG_PREPROCESS_PLOT:
+    if DEBUG_PLOT_WHEN_PREPROCESSING:
         plot_slices(img, 'clear_border')
 
     # keep 2 lagest connected graph
@@ -100,7 +100,7 @@ def get_lung_img(img):
             if r.area < max_area:
                 for c in r.coords:
                     img[c[0], c[1], c[2]] = 0
-    if DEBUG_PREPROCESS_PLOT:
+    if DEBUG_PLOT_WHEN_PREPROCESSING:
         plot_slices(img, 'keep 2 lagest connected graph')
 
     # erosion
@@ -110,15 +110,15 @@ def get_lung_img(img):
 
     # closing
     img = morphology.closing(img, selem=np.ones((4, 4, 4)))
-    if DEBUG_PREPROCESS_PLOT:
+    if DEBUG_PLOT_WHEN_PREPROCESSING:
         plot_slices(img, 'closing')
 
     # dilation
     img = morphology.dilation(img, selem=np.ones((16, 16, 16)))
-    if DEBUG_PREPROCESS_PLOT:
+    if DEBUG_PLOT_WHEN_PREPROCESSING:
         plot_slices(img, 'dilation')
 
-    if DEBUG_PREPROCESS_PLOT:
+    if DEBUG_PLOT_WHEN_PREPROCESSING:
         plot_slices(img * origin_img, 'final')
 
     return img * origin_img, np.sum(img != 0)

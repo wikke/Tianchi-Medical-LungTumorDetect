@@ -3,7 +3,7 @@ from glob import glob
 import numpy as np
 import pandas as pd
 import h5py
-from random import randint, random
+import random
 import _pickle as pickle
 from config import *
 from visual_utils import plot_middle_slices_comparison
@@ -70,7 +70,7 @@ if tumor_records.shape[0] == 0:
     exit()
 
 def get_random_image_and_records():
-    numpy_file = tumor_records.iloc[randint(0, tumor_records.shape[0]-1)]['img_numpy_file']
+    numpy_file = tumor_records.iloc[random.randint(0, tumor_records.shape[0]-1)]['img_numpy_file']
 
     with h5py.File(numpy_file, 'r') as hf:
         img = hf['img'][:]
@@ -83,19 +83,21 @@ def get_random_image_and_records():
 
         return img, records
 
-def get_block(record, around_tumor=True, shape=(INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH)):
+# random_offset works iff around_tumor=True
+def get_block(record, around_tumor=True, random_offset=(0, 0, 0), shape=(INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH)):
     with h5py.File(record['img_numpy_file'], 'r') as hf:
         W, H, D = hf['img'].shape[0], hf['img'].shape[1], hf['img'].shape[2]
 
         if around_tumor:
             coord = np.array([record['coordX'], record['coordY'], record['coordZ']])
             coord = np.abs((coord - record['origin']) / record['spacing'])
+            coord = coord + random_offset
             w, h, d = int(coord[0] - shape[0] // 2), int(coord[1] - shape[1] // 2), int(coord[2] - shape[2] // 2)
 
             w, h, d = max(w, 0), max(h, 0), max(d, 0)
             w, h, d = min(w, W - shape[0] - 1), min(h, H - shape[1] - 1), min(d, D - shape[2] - 1)
         else:
-            w, h, d = randint(0, W - shape[0] - 1), randint(0, H - shape[1] - 1), randint(0, D - shape[2] - 1)
+            w, h, d = random.randint(0, W - shape[0] - 1), random.randint(0, H - shape[1] - 1), random.randint(0, D - shape[2] - 1)
 
         block = hf['img'][w:w + shape[0], h:h + shape[1], d:d + shape[2]]
         block[block==0] = np.min(hf['img'])
@@ -120,9 +122,16 @@ def get_seg_batch(batch_size=32):
             record = tumor_records.iloc[idx]
             # print('get batch idx {}, seriesuid {}'.format(idx, record['seriesuid']))
 
-            is_positive_sample = random() < TRAIN_SEG_POSITIVE_SAMPLE_RATIO
-            X[b,:,:,:,0] = get_block(record, around_tumor=is_positive_sample, shape=(INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH))
-            y[b,:,:,:,0] = make_seg_mask(record, create_mask=is_positive_sample)
+            is_positive_sample = random.random() < TRAIN_SEG_POSITIVE_SAMPLE_RATIO
+            random_offset = np.array([
+                random.randrange(-TRAIN_SEG_SAMPLE_RANDOM_OFFSET, TRAIN_SEG_SAMPLE_RANDOM_OFFSET),
+                random.randrange(-TRAIN_SEG_SAMPLE_RANDOM_OFFSET, TRAIN_SEG_SAMPLE_RANDOM_OFFSET),
+                random.randrange(-TRAIN_SEG_SAMPLE_RANDOM_OFFSET, TRAIN_SEG_SAMPLE_RANDOM_OFFSET)
+            ])
+
+            X[b,:,:,:,0] = get_block(record, around_tumor=is_positive_sample, random_offset=random_offset,
+                                     shape=(INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH))
+            y[b,:,:,:,0] = make_seg_mask(record, create_mask=is_positive_sample, random_offset=random_offset)
 
             if not DEBUG_SEG_TRY_OVERFIT:
                 idx = idx + 1 if idx < tumor_records.shape[0] - 1 else 0
@@ -132,7 +141,7 @@ def get_seg_batch(batch_size=32):
 
         yield X, y
 
-def make_seg_mask(record, create_mask=True):
+def make_seg_mask(record, create_mask=True, random_offset=(0, 0, 0)):
     mask = np.zeros((INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH))
 
     if create_mask:
@@ -143,6 +152,7 @@ def make_seg_mask(record, create_mask=True):
             radius = radius / record['spacing']
 
         coord = np.array([INPUT_WIDTH / 2, INPUT_HEIGHT / 2, INPUT_DEPTH / 2])
+        coord = coord + random_offset
         radius, coord = radius.astype(np.uint16), coord.astype(np.uint16)
 
         mask[coord[0] - radius[0]:coord[0] + radius[0] + 1,
@@ -169,7 +179,7 @@ def get_classify_batch(batch_size=32):
             idx = idx + 1 if idx < tumor_records.shape[0] - 1 else 0
 
         for b in range(positive_num, batch_size):
-            record = tumor_records.iloc[randint(0, tumor_records.shape[0] - 1)]
+            record = tumor_records.iloc[random.randint(0, tumor_records.shape[0] - 1)]
             X[b,:,:,:,0] = get_block(record, around_tumor=False, shape=shape)
             y[b,1] = 1
 

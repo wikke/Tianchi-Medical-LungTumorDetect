@@ -3,7 +3,7 @@ from glob import glob
 import numpy as np
 import pandas as pd
 import h5py
-from random import randint
+from random import randint, random
 import _pickle as pickle
 from config import *
 from visual_utils import plot_middle_slices_comparison
@@ -120,8 +120,9 @@ def get_seg_batch(batch_size=32):
             record = tumor_records.iloc[idx]
             # print('get batch idx {}, seriesuid {}'.format(idx, record['seriesuid']))
 
-            X[b,:,:,:,0] = get_block(record, around_tumor=True, shape=(INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH))
-            y[b,:,:,:,0] = make_seg_mask(record)
+            is_positive_sample = random() < TRAIN_SEG_POSITIVE_SAMPLE_RATIO
+            X[b,:,:,:,0] = get_block(record, around_tumor=is_positive_sample, shape=(INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH))
+            y[b,:,:,:,0] = make_seg_mask(record, create_mask=is_positive_sample)
 
             if not DEBUG_SEG_TRY_OVERFIT:
                 idx = idx + 1 if idx < tumor_records.shape[0] - 1 else 0
@@ -131,21 +132,22 @@ def get_seg_batch(batch_size=32):
 
         yield X, y
 
-def make_seg_mask(record):
+def make_seg_mask(record, create_mask=True):
     mask = np.zeros((INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH))
 
-    r = record['diameter_mm'] / 2  + DIAMETER_BUFFER
-    radius = np.array([r, r, r])
+    if create_mask:
+        r = record['diameter_mm'] / 2  + DIAMETER_BUFFER
+        radius = np.array([r, r, r])
 
-    if DIAMETER_SPACING_EXPAND:
-        radius = radius / record['spacing']
+        if DIAMETER_SPACING_EXPAND:
+            radius = radius / record['spacing']
 
-    coord = np.array([INPUT_WIDTH / 2, INPUT_HEIGHT / 2, INPUT_DEPTH / 2])
-    radius, coord = radius.astype(np.uint16), coord.astype(np.uint16)
+        coord = np.array([INPUT_WIDTH / 2, INPUT_HEIGHT / 2, INPUT_DEPTH / 2])
+        radius, coord = radius.astype(np.uint16), coord.astype(np.uint16)
 
-    mask[coord[0] - radius[0]:coord[0] + radius[0] + 1,
-         coord[1] - radius[1]:coord[1] + radius[1] + 1,
-         coord[2] - radius[2]:coord[2] + radius[2] + 1] = 1.0
+        mask[coord[0] - radius[0]:coord[0] + radius[0] + 1,
+             coord[1] - radius[1]:coord[1] + radius[1] + 1,
+             coord[2] - radius[2]:coord[2] + radius[2] + 1] = 1.0
 
     return mask
 

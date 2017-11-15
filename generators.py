@@ -141,7 +141,7 @@ def make_seg_mask(record, create_mask=True, random_offset=(0, 0, 0)):
             radius = radius / record['spacing']
 
         coord = np.array([INPUT_WIDTH / 2, INPUT_HEIGHT / 2, INPUT_DEPTH / 2])
-        coord = coord + random_offset
+        coord = coord - random_offset
         radius, coord = radius.astype(np.uint16), coord.astype(np.uint16)
 
         mask[coord[0] - radius[0]:coord[0] + radius[0] + 1,
@@ -152,7 +152,7 @@ def make_seg_mask(record, create_mask=True, random_offset=(0, 0, 0)):
 
 # [1, 0], positive sample
 # [0, 1], negative sample
-def get_classify_batch(batch_size=32):
+def get_classify_batch(batch_size=32, random_choice=False):
     idx = 0
     X = np.zeros((batch_size, CLASSIFY_INPUT_WIDTH, CLASSIFY_INPUT_HEIGHT, CLASSIFY_INPUT_DEPTH, CLASSIFY_INPUT_CHANNEL))
     y = np.zeros((batch_size, 2))
@@ -161,9 +161,19 @@ def get_classify_batch(batch_size=32):
 
     while True:
         for b in range(positive_num):
-            record = tumor_records.iloc[idx]
-            X[b,:,:,:,0] = get_block(record, around_tumor=True, shape=shape)
-            y[b,0] = 1
+            if random_choice:
+                record = tumor_records.iloc[random.randint(0, tumor_records.shape[0]-1)]
+            else:
+                record = tumor_records.iloc[idx]
+
+            random_offset = np.array([
+                random.randrange(-TRAIN_CLASSIFY_SAMPLE_RANDOM_OFFSET, TRAIN_CLASSIFY_SAMPLE_RANDOM_OFFSET),
+                random.randrange(-TRAIN_CLASSIFY_SAMPLE_RANDOM_OFFSET, TRAIN_CLASSIFY_SAMPLE_RANDOM_OFFSET),
+                random.randrange(-TRAIN_CLASSIFY_SAMPLE_RANDOM_OFFSET, TRAIN_CLASSIFY_SAMPLE_RANDOM_OFFSET)
+            ])
+
+            X[b,:,:,:,0] = get_block(record, around_tumor=True, random_offset=random_offset, shape=shape)
+            y[b, 0] = 1
 
             idx = idx + 1 if idx < tumor_records.shape[0] - 1 else 0
 

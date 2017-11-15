@@ -44,9 +44,7 @@ def do_evaluate(model):
     intersection = y_true * y_pred
     recall = (np.sum(intersection) + SMOOTH) / (np.sum(y_true) + SMOOTH)
     precision = (np.sum(intersection) + SMOOTH) / (np.sum(y_pred) + SMOOTH)
-    loss = dice_coef_loss(y_true, y_pred)
-
-    print('Average loss {:.4f}, recall {:.4f}, precision {:.4f}'.format(loss, recall, precision))
+    print('Average recall {:.4f}, precision {:.4f}'.format(recall, precision))
 
     for threshold in range(0, 10, 2):
         threshold = threshold / 10.0

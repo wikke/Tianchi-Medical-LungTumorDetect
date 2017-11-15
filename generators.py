@@ -11,6 +11,7 @@ from visual_utils import plot_middle_slices_comparison
 def get_meta_dict():
     cache_file = '{}/all_meta_cache.meta'.format(PREPROCESS_PATH)
     if os.path.exists(cache_file):
+        print('get meta_dict from cache')
         with open(cache_file, 'rb') as f:
             return pickle.load(f)
 

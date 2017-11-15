@@ -3,7 +3,6 @@ from keras.layers import Input, Conv3D, MaxPooling3D, UpSampling3D, concatenate
 from keras.callbacks import Callback
 from keras.optimizers import Adam
 from keras import backend as K
-
 from config import *
 from generators import get_seg_batch, get_image_and_records
 from skimage import morphology, measure, segmentation
@@ -21,6 +20,21 @@ def dice_coef(y_true, y_pred):
 def dice_coef_loss(y_true, y_pred):
     return 1-dice_coef(y_true, y_pred)
 
+def metrics_true_sum(y_true, y_pred):
+    return K.sum(y_true)
+
+def metrics_pred_sum(y_true, y_pred):
+    return K.sum(y_pred)
+
+def metrics_pred_max(y_true, y_pred):
+    return K.max(y_pred)
+
+def metrics_pred_min(y_true, y_pred):
+    return K.min(y_pred)
+
+def metrics_pred_mean(y_true, y_pred):
+    return K.mean(y_pred)
+
 def evaluate_ct(model, seriesuid):
     print('************ Evaluating ************')
     X_whole, tumor_records = get_image_and_records(seriesuid)
@@ -28,7 +42,7 @@ def evaluate_ct(model, seriesuid):
         print('no records')
         return
 
-    if DEBUG_PART_EVALUATE_CALLBACK:
+    if TRAIN_SEG_EVALUATE_ONLY_TUMOR:
         record = tumor_records.iloc[0]
         coord = np.array([record['coordX'], record['coordY'], record['coordZ']])
         coord = np.abs((coord - record['origin']) / record['spacing'])
@@ -43,7 +57,7 @@ def evaluate_ct(model, seriesuid):
         coord = np.array([record['coordX'], record['coordY'], record['coordZ']])
         coord = np.abs((coord - record['origin']) / record['spacing']).astype(np.uint16)
 
-        if DEBUG_PART_EVALUATE_CALLBACK:
+        if TRAIN_SEG_EVALUATE_ONLY_TUMOR:
             coord = np.array([INPUT_WIDTH//2, INPUT_HEIGHT//2, INPUT_DEPTH//2])
 
         r = record['diameter_mm'] / 2 + DIAMETER_BUFFER
@@ -117,7 +131,6 @@ class UNetEvaluator(Callback):
 def get_unet():
     return get_simplified_unet() if USE_SIMPLIFIED_UNET else get_full_unet()
 
-
 def get_simplified_unet():
     inputs = Input((INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH, INPUT_CHANNEL))
 
@@ -160,10 +173,10 @@ def get_simplified_unet():
     conv10 = Conv3D(OUTPUT_CHANNEL, (1, 1, 1), activation='sigmoid')(conv9)
 
     model = Model(inputs=inputs, outputs=conv10)
-    model.compile(optimizer=Adam(lr=TRAIN_SEG_LEARNING_RATE), loss=dice_coef_loss, metrics=[dice_coef])
+    model.compile(optimizer=Adam(lr=TRAIN_SEG_LEARNING_RATE), loss=dice_coef_loss,
+                  metrics=[dice_coef, metrics_true_sum, metrics_pred_sum, metrics_pred_max, metrics_pred_min, metrics_pred_mean])
 
     return model
-
 
 def get_full_unet():
     inputs = Input((INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH, INPUT_CHANNEL))
@@ -206,7 +219,8 @@ def get_full_unet():
     conv10 = Conv3D(OUTPUT_CHANNEL, (1, 1, 1), activation='sigmoid')(conv9)
 
     model = Model(inputs=inputs, outputs=conv10)
-    model.compile(optimizer=Adam(lr=TRAIN_SEG_LEARNING_RATE), loss=dice_coef_loss, metrics=[dice_coef])
+    model.compile(optimizer=Adam(lr=TRAIN_SEG_LEARNING_RATE), loss=dice_coef_loss,
+                  metrics=[dice_coef, metrics_true_sum, metrics_pred_sum, metrics_pred_max, metrics_pred_min, metrics_pred_mean])
 
     return model
 

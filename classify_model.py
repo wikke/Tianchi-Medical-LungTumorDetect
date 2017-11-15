@@ -1,9 +1,48 @@
 from keras.models import Model
-from keras.layers import Input, Conv3D, MaxPooling3D, Dense, GlobalMaxPooling3D, Dropout
+from keras.layers import Input, Conv3D, MaxPooling3D, Dense, GlobalMaxPooling3D, Dropout, Flatten
 from keras.optimizers import Adam
 from config import *
 
 def get_VGG_classifier():
+   return get_simplified_VGG_classifier() if USE_SIMPLIFIED_VGG else get_full_VGG_classifier()
+
+def get_simplified_VGG_classifier():
+    inputs = Input((CLASSIFY_INPUT_WIDTH, CLASSIFY_INPUT_HEIGHT, CLASSIFY_INPUT_DEPTH, CLASSIFY_INPUT_CHANNEL))
+
+    x = Conv3D(16, (3, 3, 3), padding='same', activation='relu')(inputs)
+    x = Conv3D(16, (3, 3, 3), padding='same', activation='relu')(x)
+    x = MaxPooling3D(pool_size=(2, 2, 2))(x)
+
+    x = Conv3D(32, (3, 3, 3), padding='same', activation='relu')(x)
+    x = Conv3D(32, (3, 3, 3), padding='same', activation='relu')(x)
+    x = MaxPooling3D(pool_size=(2, 2, 2))(x)
+
+    x = Conv3D(64, (3, 3, 3), padding='same', activation='relu')(x)
+    x = Conv3D(64, (3, 3, 3), padding='same', activation='relu')(x)
+    x = Conv3D(64, (3, 3, 3), padding='same', activation='relu')(x)
+    # x = MaxPooling3D(pool_size=(2, 2, 2))(x)
+
+    # x = Conv3D(256, (3, 3, 3), padding='same', activation='relu')(x)
+    # x = Conv3D(256, (3, 3, 3), padding='same', activation='relu')(x)
+    # x = Conv3D(256, (3, 3, 3), padding='same', activation='relu')(x)
+    # x = MaxPooling3D(pool_size=(2, 2, 2))(x)
+    #
+    # x = Conv3D(512, (3, 3, 3), padding='same', activation='relu')(x)
+    # x = Conv3D(512, (3, 3, 3), padding='same', activation='relu')(x)
+    # x = Conv3D(512, (3, 3, 3), padding='same', activation='relu')(x)
+    # x = GlobalMaxPooling3D()(x)
+    x = Flatten()(x)
+
+    # x = Dense(32, activation='relu')(x)
+    x = Dropout(0.5)(x)
+    x = Dense(2, activation='softmax')(x)
+
+    model = Model(inputs=inputs, outputs=x)
+    model.compile(optimizer=Adam(lr=TRAIN_CLASSIFY_LEARNING_RATE), loss='binary_crossentropy', metrics=['accuracy'])
+
+    return model
+
+def get_full_VGG_classifier():
     inputs = Input((CLASSIFY_INPUT_WIDTH, CLASSIFY_INPUT_HEIGHT, CLASSIFY_INPUT_DEPTH, CLASSIFY_INPUT_CHANNEL))
 
     x = Conv3D(32, (3, 3, 3), padding='same', activation='relu')(inputs)

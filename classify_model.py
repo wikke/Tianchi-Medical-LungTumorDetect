@@ -4,7 +4,7 @@ from keras.optimizers import Adam
 from config import *
 
 def get_VGG_classifier():
-   return get_simplified_VGG_classifier() if USE_SIMPLIFIED_VGG else get_full_VGG_classifier()
+    return get_simplified_VGG_classifier() if USE_SIMPLIFIED_VGG else get_full_VGG_classifier()
 
 def get_simplified_VGG_classifier():
     inputs = Input((CLASSIFY_INPUT_WIDTH, CLASSIFY_INPUT_HEIGHT, CLASSIFY_INPUT_DEPTH, CLASSIFY_INPUT_CHANNEL))
@@ -26,23 +26,23 @@ def get_simplified_VGG_classifier():
     x = Conv3D(64, (3, 3, 3), padding='same', activation='relu')(x)
     x = Conv3D(64, (3, 3, 3), padding='same', activation='relu')(x)
     x = Conv3D(64, (3, 3, 3), padding='same', activation='relu')(x)
-    # x = MaxPooling3D(pool_size=(2, 2, 2))(x)
+    x = MaxPooling3D(pool_size=(2, 2, 2))(x)
 
     if TRAIN_CLASSIFY_USE_BN:
         x = BatchNormalization()(x)
 
-    # x = Conv3D(256, (3, 3, 3), padding='same', activation='relu')(x)
-    # x = Conv3D(256, (3, 3, 3), padding='same', activation='relu')(x)
-    # x = Conv3D(256, (3, 3, 3), padding='same', activation='relu')(x)
+    x = Conv3D(128, (3, 3, 3), padding='same', activation='relu')(x)
+    x = Conv3D(128, (3, 3, 3), padding='same', activation='relu')(x)
+    x = Conv3D(128, (3, 3, 3), padding='same', activation='relu')(x)
     # x = MaxPooling3D(pool_size=(2, 2, 2))(x)
     #
     # x = Conv3D(512, (3, 3, 3), padding='same', activation='relu')(x)
     # x = Conv3D(512, (3, 3, 3), padding='same', activation='relu')(x)
     # x = Conv3D(512, (3, 3, 3), padding='same', activation='relu')(x)
-    # x = GlobalMaxPooling3D()(x)
-    x = Flatten()(x)
+    x = GlobalMaxPooling3D()(x)
+    # x = Flatten()(x)
 
-    # x = Dense(32, activation='relu')(x)
+    x = Dense(32, activation='relu')(x)
     x = Dropout(0.5)(x)
     x = Dense(2, activation='softmax')(x)
 

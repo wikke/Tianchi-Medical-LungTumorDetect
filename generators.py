@@ -17,6 +17,10 @@ def get_meta_dict():
 
     meta_dict = {}
     for f in glob('{}/*.meta'.format(PREPROCESS_PATH)):
+        seriesuid = f[-15:-5]
+        if not os.path.exists('{}/{}.h5'.format(PREPROCESS_PATH, seriesuid)):
+            continue
+
         with open(f, 'rb') as f:
             meta = pickle.load(f)
             meta_dict[meta['seriesuid']] = meta

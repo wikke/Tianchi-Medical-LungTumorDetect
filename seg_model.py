@@ -9,7 +9,7 @@ from skimage import morphology, measure, segmentation
 from visual_utils import plot_slices, plot_comparison
 import numpy as np
 
-SMOOTH = 0.0001
+SMOOTH = 1.0
 
 def dice_coef(y_true, y_pred):
     y_true_f = K.flatten(y_true)
@@ -42,8 +42,8 @@ def do_evaluate(model):
 
     X, y_true, y_pred = X[0,:,:,:,0], y_true[0,:,:,:,0], y_pred[0,:,:,:,0]
     intersection = y_true * y_pred
-    recall = np.sum(intersection) / np.sum(y_true)
-    precision = np.sum(intersection) / np.sum(y_pred)
+    recall = (np.sum(intersection) + SMOOTH) / (np.sum(y_true) + SMOOTH)
+    precision = (np.sum(intersection) + SMOOTH) / (np.sum(y_pred) + SMOOTH)
     loss = dice_coef_loss(y_true, y_pred)
 
     print('Average loss {:.4f}, recall {:.4f}, precision {:.4f}'.format(loss, recall, precision))
@@ -52,8 +52,8 @@ def do_evaluate(model):
         threshold = threshold / 10.0
         pred_mask = (y_pred > threshold).astype(np.uint8)
         intersection = y_true * pred_mask
-        recall = np.sum(intersection) / np.sum(y_true)
-        precision = np.sum(intersection) / np.sum(y_pred)
+        recall = (np.sum(intersection) + SMOOTH) / (np.sum(y_true) + SMOOTH)
+        precision = (np.sum(intersection) + SMOOTH) / (np.sum(y_pred) + SMOOTH)
         print("Threshold {}: recall {:.4f}, precision {:.4f}".format(threshold, recall, precision))
 
     regions = measure.regionprops(measure.label(y_pred))

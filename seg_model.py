@@ -4,7 +4,7 @@ from keras.callbacks import Callback
 from keras.optimizers import Adam
 from keras import backend as K
 from config import *
-from generators import get_seg_batch, get_random_image_and_records
+from generators import get_seg_batch
 from skimage import morphology, measure, segmentation
 from visual_utils import plot_slices, plot_comparison
 import numpy as np
@@ -35,96 +35,35 @@ def metrics_pred_min(y_true, y_pred):
 def metrics_pred_mean(y_true, y_pred):
     return K.mean(y_pred)
 
-def evaluate_ct(model):
-    print('************ Evaluating ************')
-    X_whole, records = get_random_image_and_records()
-    if X_whole is None:
-        print('no records')
-        return
+def do_evaluate(model):
+    print('Model evaluating')
+    X, y_true = next(get_seg_batch(1, random_choice=True))
+    y_pred = model.predict(X)
 
-    if TRAIN_SEG_EVALUATE_ONLY_TUMOR:
-        record = records.iloc[0]
-        coord = np.array([record['coordX'], record['coordY'], record['coordZ']])
-        coord = np.abs((coord - record['origin']) / record['spacing'])
-        coord = coord - np.array([INPUT_WIDTH // 2, INPUT_HEIGHT // 2, INPUT_DEPTH // 2])
-        coord = coord.astype(np.uint16)
-        X_whole = X_whole[coord[0]:coord[0]+INPUT_WIDTH, coord[1]:coord[1]+INPUT_HEIGHT, coord[2]:coord[2]+INPUT_DEPTH]
-        print('PART_EVALUATE DEBUG ENABLED: X_whole shape {}'.format(X_whole.shape))
+    X, y_true, y_pred = X[0,:,:,:,0], y_true[0,:,:,:,0], y_pred[0,:,:,:,0]
+    intersection = y_true * y_pred
+    recall = np.sum(intersection) / np.sum(y_true)
+    precision = np.sum(intersection) / np.sum(y_pred)
+    loss = dice_coef_loss(y_true, y_pred)
 
-    y_whole = np.zeros(X_whole.shape)
-    for i in range(records.shape[0]):
-        record = records.iloc[i]
-        coord = np.array([record['coordX'], record['coordY'], record['coordZ']])
-        coord = np.abs((coord - record['origin']) / record['spacing']).astype(np.uint16)
-
-        if TRAIN_SEG_EVALUATE_ONLY_TUMOR:
-            coord = np.array([INPUT_WIDTH//2, INPUT_HEIGHT//2, INPUT_DEPTH//2])
-
-        r = record['diameter_mm'] / 2 + DIAMETER_BUFFER
-        radius = np.array([r, r, r])
-
-        if DIAMETER_SPACING_EXPAND:
-            radius = radius / record['spacing']
-
-        radius = radius.astype(np.uint16)
-
-        y_whole[coord[0] - radius[0]:coord[0] + radius[0] + 1,
-                coord[1] - radius[1]:coord[1] + radius[1] + 1,
-                coord[2] - radius[2]:coord[2] + radius[2] + 1] = 1.0
-
-        if TRAIN_SEG_EVALUATE_ONLY_TUMOR:
-            break
-
-    pred_whole = np.zeros(X_whole.shape)
-    for w in range(0, X_whole.shape[0] - INPUT_WIDTH + 1, INPUT_WIDTH):
-        for h in range(0, X_whole.shape[1] - INPUT_HEIGHT + 1, INPUT_HEIGHT):
-            for d in range(0, X_whole.shape[2] - INPUT_DEPTH + 1, INPUT_DEPTH):
-                # print('in {}'.format((h,w,d)))
-                _x = np.expand_dims(np.expand_dims(X_whole[w:w+INPUT_WIDTH, h:h+INPUT_HEIGHT, d:d+INPUT_DEPTH], axis=-1), axis=0)
-                _pred = model.predict(_x)
-                pred_whole[w:w + INPUT_WIDTH, h:h + INPUT_HEIGHT, d:d + INPUT_DEPTH] = _pred[0,:,:,:,0]
-
-    intersection_whole = y_whole * pred_whole
-    dice_coef = (2. * np.sum(intersection_whole) + SMOOTH) / (np.sum(y_whole) + np.sum(pred_whole) + SMOOTH)
-    print("ceof {:.4f}, loss {:.4f}".format(dice_coef, 1 - dice_coef))
-
-    y_sum, y_count = np.sum(y_whole), np.count_nonzero(y_whole)
-    pred_sum, pred_count = np.sum(pred_whole), np.count_nonzero(pred_whole)
-    inter_sum, inter_count = np.sum(intersection_whole), np.count_nonzero(intersection_whole)
-    print('y y_sum {:.4f}, y_count {}'.format(y_sum, y_count))
-    print('pred_sum {:.4f}, pred_count {}'.format(pred_sum, pred_count))
-    print('inter_sum {:.4f}, inter_count {}'.format(inter_sum, inter_count))
+    print('Average loss {:.4f}, recall {:.4f}, precision {:.4f}'.format(loss, recall, precision))
 
     for threshold in range(0, 10, 2):
         threshold = threshold / 10.0
-        pred_thres = (pred_whole > threshold).astype(np.uint8)
-        inter_thres = y_whole * pred_thres
-        dice_coef = (2. * np.sum(inter_thres) + SMOOTH) / (np.sum(y_whole) + np.sum(pred_thres) + SMOOTH)
-        recall = np.sum(inter_thres) / np.sum(y_whole)
-        precision = np.sum(inter_thres) / np.sum(pred_thres)
-        print("threshold {}: ceof {:.4f}, loss {:.4f}, recall {:.4f}, precision {:.4f}".format(threshold, dice_coef, 1 - dice_coef, recall, precision))
+        pred_mask = (y_pred > threshold).astype(np.uint8)
+        intersection = y_true * pred_mask
+        recall = np.sum(intersection) / np.sum(y_true)
+        precision = np.sum(intersection) / np.sum(y_pred)
+        print("Threshold {}: recall {:.4f}, precision {:.4f}".format(threshold, recall, precision))
 
-    regions = measure.regionprops(measure.label(pred_whole))
+    regions = measure.regionprops(measure.label(y_pred))
     print('Num of pred regions {}'.format(len(regions)))
 
-    # for region in regions:
-    #     properties = {
-    #         'area': region.area,
-    #         'bbox': region.bbox,
-    #         'centroid': region.centroid,
-    #         # 'coords': region.coords,
-    #         'equivalent_diameter': region.equivalent_diameter,
-    #         'extent': region.extent,
-    #         'filled_area': region.filled_area,
-    #         'label': region.label,
-    #     }
-    #     print(properties)
-
     if DEBUG_PLOT_WHEN_EVALUATING_SEG:
-        plot_comparison(X_whole, y_whole, pred_whole)
-        plot_slices(X_whole)
-        plot_slices(y_whole)
-        plot_slices(pred_whole)
+        plot_comparison(X, y_true, y_pred)
+        plot_slices(X)
+        plot_slices(y_true)
+        plot_slices(y_pred)
 
 class UNetEvaluator(Callback):
     def __init__(self):
@@ -133,7 +72,7 @@ class UNetEvaluator(Callback):
     def on_epoch_end(self, epoch, logs=None):
         self.counter += 1
         if self.counter % TRAIN_SEG_EVALUATE_FREQ == 0:
-            evaluate_ct(self.model)
+            do_evaluate(self.model)
 
 def get_unet():
     return get_simplified_unet() if USE_SIMPLIFIED_UNET else get_full_unet()

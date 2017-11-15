@@ -69,20 +69,6 @@ if tumor_records.shape[0] == 0:
     print('no tumor records, generator cannot work')
     exit()
 
-def get_random_image_and_records():
-    numpy_file = tumor_records.iloc[random.randint(0, tumor_records.shape[0]-1)]['img_numpy_file']
-
-    with h5py.File(numpy_file, 'r') as hf:
-        img = hf['img'][:]
-
-        img[img==0] = np.min(img)
-        img = (img - MIN_BOUND) / (MAX_BOUND - MIN_BOUND)
-        img = np.clip(img, 0.0, 1.0)
-
-        records = tumor_records[tumor_records['img_numpy_file'] == numpy_file]
-
-        return img, records
-
 # random_offset works iff around_tumor=True
 def get_block(record, around_tumor=True, random_offset=(0, 0, 0), shape=(INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH)):
     with h5py.File(record['img_numpy_file'], 'r') as hf:
@@ -112,14 +98,17 @@ def plot_batch_sample(X, y=None):
     for b in range(X.shape[0]):
         plot_middle_slices_comparison([X[b, :, :, :, 0], y[b, :, :, :, 0]])
 
-def get_seg_batch(batch_size=32):
+def get_seg_batch(batch_size=32, random_choice=False):
     idx = 0
     X = np.zeros((batch_size, INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH, INPUT_CHANNEL))
     y = np.zeros((batch_size, INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH, OUTPUT_CHANNEL))
 
     while True:
         for b in range(batch_size):
-            record = tumor_records.iloc[idx]
+            if random_choice:
+                record = tumor_records.iloc[random.randint(0, tumor_records.shape[0]-1)]
+            else:
+                record = tumor_records.iloc[idx]
             # print('get batch idx {}, seriesuid {}'.format(idx, record['seriesuid']))
 
             is_positive_sample = random.random() < TRAIN_SEG_POSITIVE_SAMPLE_RATIO

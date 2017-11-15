@@ -1,3 +1,4 @@
+import os
 from glob import glob
 import numpy as np
 import pandas as pd
@@ -7,16 +8,27 @@ import _pickle as pickle
 from config import *
 from visual_utils import plot_middle_slices_comparison
 
-def get_tumor_records():
-    numpy_files = glob('{}/*.h5'.format(PREPROCESS_PATH))
+def get_meta_dict():
+    cache_file = '{}/all_meta_cache.meta'.format(PREPROCESS_PATH)
+    if os.path.exists(cache_file):
+        with open(cache_file, 'rb') as f:
+            return pickle.load(f)
+
     meta_dict = {}
     for f in glob('{}/*.meta'.format(PREPROCESS_PATH)):
         with open(f, 'rb') as f:
             meta = pickle.load(f)
             meta_dict[meta['seriesuid']] = meta
 
-            if DEBUG_MAX_TUMOR_RECORDS_READ != -1 and len(meta_dict) >= DEBUG_MAX_TUMOR_RECORDS_READ:
-                break
+    # cache it
+    with open(cache_file, 'wb') as f:
+        pickle.dump(meta_dict, f)
+
+    return meta_dict
+
+def get_tumor_records():
+    numpy_files = glob('{}/*.h5'.format(PREPROCESS_PATH))
+    meta_dict = get_meta_dict()
 
     fields = ['img_numpy_file', 'origin', 'spacing', 'shape', 'pixels', 'cover_ratio', 'process_duration']
     def fill_info(seriesuid):

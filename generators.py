@@ -67,21 +67,21 @@ def get_image_and_records(seriesuid):
 
         return img, records
 
-def get_block(record, around_tumor=True):
+def get_block(record, around_tumor=True, shape=(INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH)):
     with h5py.File(record['img_numpy_file'], 'r') as hf:
         W, H, D = hf['img'].shape[0], hf['img'].shape[1], hf['img'].shape[2]
 
         if around_tumor:
             coord = np.array([record['coordX'], record['coordY'], record['coordZ']])
             coord = np.abs((coord - record['origin']) / record['spacing'])
-            w, h, d = int(coord[0] - INPUT_WIDTH // 2), int(coord[1] - INPUT_HEIGHT // 2), int(coord[2] - INPUT_DEPTH // 2)
+            w, h, d = int(coord[0] - shape[0] // 2), int(coord[1] - shape[1] // 2), int(coord[2] - shape[2] // 2)
 
             w, h, d = max(w, 0), max(h, 0), max(d, 0)
-            w, h, d = min(w, W - INPUT_WIDTH - 1), min(h, H - INPUT_HEIGHT - 1), min(d, D - INPUT_DEPTH - 1)
+            w, h, d = min(w, W - shape[0] - 1), min(h, H - shape[1] - 1), min(d, D - shape[2] - 1)
         else:
-            w, h, d = randint(0, W - INPUT_WIDTH - 1), randint(0, H - INPUT_HEIGHT - 1), randint(0, D - INPUT_DEPTH - 1)
+            w, h, d = randint(0, W - shape[0] - 1), randint(0, H - shape[1] - 1), randint(0, D - shape[2] - 1)
 
-        block = hf['img'][w:w + INPUT_WIDTH, h:h + INPUT_HEIGHT, d:d + INPUT_DEPTH]
+        block = hf['img'][w:w + shape[0], h:h + shape[1], d:d + shape[2]]
         block[block==0] = np.min(hf['img'])
         block = (block - MIN_BOUND) / (MAX_BOUND - MIN_BOUND)
         block = np.clip(block, 0.0, 1.0)
@@ -104,7 +104,7 @@ def get_seg_batch(batch_size=32):
             record = tumor_records.iloc[idx]
             # print('get batch idx {}, seriesuid {}'.format(idx, record['seriesuid']))
 
-            X[b,:,:,:,0] = get_block(record, around_tumor=True)
+            X[b,:,:,:,0] = get_block(record, around_tumor=True, shape=(INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH))
             y[b,:,:,:,0] = make_seg_mask(record)
 
             if not DEBUG_SEG_TRY_OVERFIT:
@@ -137,21 +137,22 @@ def make_seg_mask(record):
 # [0, 1], negative sample
 def get_classify_batch(batch_size=32):
     idx = 0
-    X = np.zeros((batch_size, INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH, INPUT_CHANNEL))
+    X = np.zeros((batch_size, CLASSIFY_INPUT_WIDTH, CLASSIFY_INPUT_HEIGHT, CLASSIFY_INPUT_DEPTH, CLASSIFY_INPUT_CHANNEL))
     y = np.zeros((batch_size, 2))
+    shape = (CLASSIFY_INPUT_WIDTH, CLASSIFY_INPUT_HEIGHT, CLASSIFY_INPUT_DEPTH)
     positive_num = int(batch_size * CLASSIFY_POSITIVE_SAMPLE_RATIO)
 
     while True:
         for b in range(positive_num):
             record = tumor_records.iloc[idx]
-            X[b,:,:,:,0] = get_block(record, around_tumor=True)
+            X[b,:,:,:,0] = get_block(record, around_tumor=True, shape=shape)
             y[b,0] = 1
 
             idx = idx + 1 if idx < tumor_records.shape[0] - 1 else 0
 
         for b in range(positive_num, batch_size):
             record = tumor_records.iloc[randint(0, tumor_records.shape[0] - 1)]
-            X[b,:,:,:,0] = get_block(record, around_tumor=False)
+            X[b,:,:,:,0] = get_block(record, around_tumor=False, shape=shape)
             y[b,1] = 1
 
         yield X, y

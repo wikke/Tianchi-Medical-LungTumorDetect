@@ -4,7 +4,7 @@ from keras.optimizers import Adam
 from config import *
 
 def get_VGG_classifier():
-    inputs = Input((INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH, INPUT_CHANNEL))
+    inputs = Input((CLASSIFY_INPUT_WIDTH, CLASSIFY_INPUT_HEIGHT, CLASSIFY_INPUT_DEPTH, CLASSIFY_INPUT_CHANNEL))
 
     x = Conv3D(32, (3, 3, 3), padding='same', activation='relu')(inputs)
     x = Conv3D(32, (3, 3, 3), padding='same', activation='relu')(x)

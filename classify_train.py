@@ -1,12 +1,23 @@
 from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping
 from config import *
 from generators import get_classify_batch
-from classify_model import get_VGG_classifier
+from VGG_model import get_simplified_VGG_classifier, get_full_VGG_classifier
+from Inception_model import get_Inception_classifier
+from DenseNet_model import get_DenseNet_classifier
 import time
 
 def classify_train():
     print('start classify_train')
-    model = get_VGG_classifier()
+    if TRAIN_CLASSIFY_MODEL == 'VGG':
+        model = get_simplified_VGG_classifier() if USE_SIMPLIFIED_VGG else get_full_VGG_classifier()
+    elif TRAIN_CLASSIFY_MODEL == 'Inception':
+        model = get_Inception_classifier()
+    elif TRAIN_CLASSIFY_MODEL == 'DenseNet':
+        model = get_DenseNet_classifier()
+    else:
+        print('no such model:{}'.format(TRAIN_CLASSIFY_MODEL))
+        return
+
     model.summary()
 
     run = '{}-{}'.format(time.localtime().tm_hour, time.localtime().tm_min)

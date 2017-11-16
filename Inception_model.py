@@ -4,19 +4,19 @@ from keras.layers import Input, Conv3D, MaxPooling3D, Dense, GlobalMaxPooling3D,
 from keras.optimizers import Adam
 from config import *
 
-def conv_bn(x, filters, kernel_size=(3, 3, 3), strides=(1, 1, 1), padding='same'):
+def conv_bn_relu(x, filters, kernel_size=(3, 3, 3), strides=(1, 1, 1), padding='same'):
     x = Conv3D(filters, kernel_size=kernel_size, strides=strides, padding=padding)(x)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
     return x
 
 def inception_base(x):
-    x = conv_bn(x, filters=32)
-    x = conv_bn(x, filters=32)
-    x = conv_bn(x, filters=64)
+    x = conv_bn_relu(x, filters=32)
+    x = conv_bn_relu(x, filters=32)
+    x = conv_bn_relu(x, filters=64)
 
     b0 = MaxPooling3D(pool_size=(2, 2, 2))(x)
-    b1 = conv_bn(x, 64, strides=(2, 2, 2))
+    b1 = conv_bn_relu(x, 64, strides=(2, 2, 2))
     x = Concatenate(axis=4)([b0, b1])
 
     print('inception_base')
@@ -28,17 +28,17 @@ def inception_base(x):
 
 def inception_block(x, filters=256):
     shrinkaged_filters = int(filters * INCEPTION_ENABLE_DEPTHWISE_SEPARABLE_CONV_SHRINKAGE)
-    b0 = conv_bn(x, filters=filters, kernel_size=(1, 1, 1))
+    b0 = conv_bn_relu(x, filters=filters, kernel_size=(1, 1, 1))
 
-    b1 = conv_bn(x, filters=shrinkaged_filters, kernel_size=(1, 1, 1))
-    b1 = conv_bn(b1, filters=filters, kernel_size=(3, 3, 3))
+    b1 = conv_bn_relu(x, filters=shrinkaged_filters, kernel_size=(1, 1, 1))
+    b1 = conv_bn_relu(b1, filters=filters, kernel_size=(3, 3, 3))
 
-    b2 = conv_bn(x, filters=shrinkaged_filters, kernel_size=(1, 1, 1))
-    b2 = conv_bn(b2, filters=filters, kernel_size=(3, 3, 3))
-    b2 = conv_bn(b2, filters=filters, kernel_size=(3, 3, 3))
+    b2 = conv_bn_relu(x, filters=shrinkaged_filters, kernel_size=(1, 1, 1))
+    b2 = conv_bn_relu(b2, filters=filters, kernel_size=(3, 3, 3))
+    b2 = conv_bn_relu(b2, filters=filters, kernel_size=(3, 3, 3))
 
     b3 = AveragePooling3D(pool_size=(3, 3, 3), strides=(1, 1, 1), padding='same')(x)
-    b3 = conv_bn(b3, filters=filters, kernel_size=(1, 1, 1))
+    b3 = conv_bn_relu(b3, filters=filters, kernel_size=(1, 1, 1))
 
     bs = [b0, b1, b2, b3]
 
@@ -49,10 +49,10 @@ def inception_block(x, filters=256):
     print(b3.get_shape())
 
     if INCEPTION_ENABLE_SPATIAL_SEPARABLE_CONV:
-        b4 = conv_bn(x, filters=shrinkaged_filters, kernel_size=(1, 1, 1))
-        b4 = conv_bn(b4, filters=filters, kernel_size=(5, 1, 1))
-        b4 = conv_bn(b4, filters=filters, kernel_size=(1, 5, 1))
-        b4 = conv_bn(b4, filters=filters, kernel_size=(1, 1, 5))
+        b4 = conv_bn_relu(x, filters=shrinkaged_filters, kernel_size=(1, 1, 1))
+        b4 = conv_bn_relu(b4, filters=filters, kernel_size=(5, 1, 1))
+        b4 = conv_bn_relu(b4, filters=filters, kernel_size=(1, 5, 1))
+        b4 = conv_bn_relu(b4, filters=filters, kernel_size=(1, 1, 5))
         bs.append(b4)
         print(b4.get_shape())
 
@@ -62,14 +62,14 @@ def inception_block(x, filters=256):
     return x
 
 def reduction_block(x, filters=256):
-    b0 = conv_bn(x, filters=filters, kernel_size=(3, 3, 3), strides=(2, 2, 2), padding='same')
+    b0 = conv_bn_relu(x, filters=filters, kernel_size=(3, 3, 3), strides=(2, 2, 2), padding='same')
 
-    b1 = conv_bn(x, filters=filters, kernel_size=(1, 1, 1))
-    b1 = conv_bn(b1, filters=filters, kernel_size=(3, 3, 3))
-    b1 = conv_bn(b1, filters=filters, kernel_size=(3, 3, 3), strides=(2, 2, 2), padding='same')
+    b1 = conv_bn_relu(x, filters=filters, kernel_size=(1, 1, 1))
+    b1 = conv_bn_relu(b1, filters=filters, kernel_size=(3, 3, 3))
+    b1 = conv_bn_relu(b1, filters=filters, kernel_size=(3, 3, 3), strides=(2, 2, 2), padding='same')
 
     b2 = MaxPooling3D(pool_size=(3, 3, 3), strides=(2, 2, 2), padding='same')(x)
-    b2 = conv_bn(b2, filters=filters, kernel_size=(1, 1, 1))
+    b2 = conv_bn_relu(b2, filters=filters, kernel_size=(1, 1, 1))
 
     bs = [b0, b1, b2]
 
@@ -79,11 +79,11 @@ def reduction_block(x, filters=256):
     print(b2.get_shape())
 
     if INCEPTION_ENABLE_SPATIAL_SEPARABLE_CONV:
-        b3 = conv_bn(x, filters=filters, kernel_size=(1, 1, 1))
-        b3 = conv_bn(b3, filters=filters, kernel_size=(5, 1, 1))
-        b3 = conv_bn(b3, filters=filters, kernel_size=(1, 5, 1))
-        b3 = conv_bn(b3, filters=filters, kernel_size=(1, 1, 5))
-        b3 = conv_bn(b3, filters=filters, kernel_size=(3, 3, 3), strides=(2, 2, 2), padding='same')
+        b3 = conv_bn_relu(x, filters=filters, kernel_size=(1, 1, 1))
+        b3 = conv_bn_relu(b3, filters=filters, kernel_size=(5, 1, 1))
+        b3 = conv_bn_relu(b3, filters=filters, kernel_size=(1, 5, 1))
+        b3 = conv_bn_relu(b3, filters=filters, kernel_size=(1, 1, 5))
+        b3 = conv_bn_relu(b3, filters=filters, kernel_size=(3, 3, 3), strides=(2, 2, 2), padding='same')
         bs.append(b3)
         print(b3.get_shape())
 

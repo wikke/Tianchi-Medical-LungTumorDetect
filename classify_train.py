@@ -4,15 +4,18 @@ from generators import get_classify_batch
 from VGG_model import get_simplified_VGG_classifier, get_full_VGG_classifier
 from Inception_model import get_Inception_classifier
 from DenseNet_model import get_DenseNet_classifier
+from ResNet_model import get_ResNet_classifier
 import time
 
 def classify_train():
     print('start classify_train')
-    if TRAIN_CLASSIFY_MODEL == 'VGG':
+    if TRAIN_CLASSIFY_MODEL.lower() == 'vgg':
         model = get_simplified_VGG_classifier() if USE_SIMPLIFIED_VGG else get_full_VGG_classifier()
-    elif TRAIN_CLASSIFY_MODEL == 'Inception':
+    elif TRAIN_CLASSIFY_MODEL.lower() == 'inception':
         model = get_Inception_classifier()
-    elif TRAIN_CLASSIFY_MODEL == 'DenseNet':
+    elif TRAIN_CLASSIFY_MODEL.lower() == 'resnet':
+        model = get_ResNet_classifier()
+    elif TRAIN_CLASSIFY_MODEL.lower() == 'densenet':
         model = get_DenseNet_classifier()
     else:
         print('no such model:{}'.format(TRAIN_CLASSIFY_MODEL))

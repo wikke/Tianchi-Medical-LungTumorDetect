@@ -34,7 +34,7 @@ def classify_train():
 
     model.fit_generator(get_classify_batch(TRAIN_CLASSIFY_TRAIN_BATCH_SIZE, from_train=True), steps_per_epoch=TRAIN_CLASSIFY_STEPS_PER_EPOCH,
                         validation_data=get_classify_batch(TRAIN_CLASSIFY_VALID_BATCH_SIZE, from_train=False), validation_steps=TRAIN_CLASSIFY_VALID_STEPS,
-                        epochs=TRAIN_CLASSIFY_EPOCHS, verbose=1,
+                        epochs=TRAIN_CLASSIFY_EPOCHS, verbose=2,
                         callbacks=[tensorboard, checkpoint, early_stopping])
 
 if __name__ == '__main__':

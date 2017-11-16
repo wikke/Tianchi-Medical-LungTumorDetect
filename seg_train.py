@@ -20,7 +20,7 @@ def seg_train():
     evaluator = UNetEvaluator()
     model.fit_generator(get_seg_batch(TRAIN_SEG_TRAIN_BATCH_SIZE, from_train=True), steps_per_epoch=TRAIN_SEG_STEPS_PER_EPOCH,
                         validation_data=get_seg_batch(TRAIN_SEG_VALID_BATCH_SIZE, from_train=False), validation_steps=TRAIN_SEG_VALID_STEPS,
-                        epochs=TRAIN_SEG_EPOCHS, verbose=1,
+                        epochs=TRAIN_SEG_EPOCHS, verbose=2,
                         callbacks=[tensorboard, checkpoint, early_stopping, evaluator])
 
 if __name__ == '__main__':

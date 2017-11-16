@@ -7,6 +7,7 @@ PREPROCESS_PATH = './preprocess'
 LOG_BASE_PATH = './output/training_logs'
 #LOG_BASE_PATH = '/output/training_logs'
 MSG_LOG_FILE = '{}/log.log'.format(LOG_BASE_PATH)
+TRAIN_VAL_RATIO = 0.7
 
 # Debug
 DEBUG_PLOT_WHEN_PREPROCESSING = False

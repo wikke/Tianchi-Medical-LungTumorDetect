@@ -37,7 +37,7 @@ def metrics_pred_mean(y_true, y_pred):
 
 def do_evaluate(model):
     print('Model evaluating')
-    X, y_true = next(get_seg_batch(1, random_choice=True))
+    X, y_true = next(get_seg_batch(1, from_train=False, random_choice=True))
     y_pred = model.predict(X)
 
     X, y_true, y_pred = X[0,:,:,:,0], y_true[0,:,:,:,0], y_pred[0,:,:,:,0]

@@ -65,9 +65,13 @@ def get_tumor_records():
     return records
 
 tumor_records = get_tumor_records()
-if tumor_records.shape[0] == 0:
+tumor_records_len = tumor_records.shape[0]
+if tumor_records_len == 0:
     print('no tumor records, generator cannot work')
     exit()
+tumor_records_train = tumor_records[:int(tumor_records_len * TRAIN_VAL_RATIO)]
+tumor_records_val = tumor_records[int(tumor_records_len * TRAIN_VAL_RATIO):]
+del tumor_records, tumor_records_len
 
 # random_offset works iff around_tumor=True
 def get_block(record, around_tumor=True, random_offset=(0, 0, 0), shape=(INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH)):
@@ -98,18 +102,19 @@ def plot_batch_sample(X, y=None):
     for b in range(X.shape[0]):
         plot_middle_slices_comparison([X[b, :, :, :, 0], y[b, :, :, :, 0]])
 
-def get_seg_batch(batch_size=32, random_choice=False):
+def get_seg_batch(batch_size=32, from_train=True, random_choice=False):
     idx = 0
+    records = tumor_records_train if from_train else tumor_records_val
+
     X = np.zeros((batch_size, INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH, INPUT_CHANNEL))
     y = np.zeros((batch_size, INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH, OUTPUT_CHANNEL))
 
     while True:
         for b in range(batch_size):
             if random_choice:
-                record = tumor_records.iloc[random.randint(0, tumor_records.shape[0]-1)]
-            else:
-                record = tumor_records.iloc[idx]
-            # print('get batch idx {}, seriesuid {}'.format(idx, record['seriesuid']))
+                idx = random.randint(0, records.shape[0] - 1)
+
+            record = records.iloc[idx]
 
             is_positive_sample = random.random() < TRAIN_SEG_POSITIVE_SAMPLE_RATIO
             random_offset = np.array([
@@ -123,7 +128,7 @@ def get_seg_batch(batch_size=32, random_choice=False):
             y[b,:,:,:,0] = make_seg_mask(record, create_mask=is_positive_sample, random_offset=random_offset)
 
             if not DEBUG_SEG_TRY_OVERFIT:
-                idx = idx + 1 if idx < tumor_records.shape[0] - 1 else 0
+                idx = idx + 1 if idx < records.shape[0] - 1 else 0
 
         if DEBUG_PLOT_WHEN_GETTING_SEG_BATCH:
             plot_batch_sample(X, y)
@@ -152,19 +157,20 @@ def make_seg_mask(record, create_mask=True, random_offset=(0, 0, 0)):
 
 # [1, 0], positive sample
 # [0, 1], negative sample
-def get_classify_batch(batch_size=32, random_choice=False):
+def get_classify_batch(batch_size=32, from_train=True, random_choice=False):
     idx = 0
-    X = np.zeros((batch_size, CLASSIFY_INPUT_WIDTH, CLASSIFY_INPUT_HEIGHT, CLASSIFY_INPUT_DEPTH, CLASSIFY_INPUT_CHANNEL))
-    y = np.zeros((batch_size, 2))
+    records = tumor_records_train if from_train else tumor_records_val
+
     shape = (CLASSIFY_INPUT_WIDTH, CLASSIFY_INPUT_HEIGHT, CLASSIFY_INPUT_DEPTH)
     positive_num = int(batch_size * CLASSIFY_POSITIVE_SAMPLE_RATIO)
+    X = np.zeros((batch_size, CLASSIFY_INPUT_WIDTH, CLASSIFY_INPUT_HEIGHT, CLASSIFY_INPUT_DEPTH, CLASSIFY_INPUT_CHANNEL))
+    y = np.zeros((batch_size, 2))
 
     while True:
         for b in range(positive_num):
             if random_choice:
-                record = tumor_records.iloc[random.randint(0, tumor_records.shape[0]-1)]
-            else:
-                record = tumor_records.iloc[idx]
+                idx = random.randint(0, records.shape[0] - 1)
+            record = records.iloc[idx]
 
             random_offset = np.array([
                 random.randrange(-TRAIN_CLASSIFY_SAMPLE_RANDOM_OFFSET, TRAIN_CLASSIFY_SAMPLE_RANDOM_OFFSET),
@@ -172,14 +178,14 @@ def get_classify_batch(batch_size=32, random_choice=False):
                 random.randrange(-TRAIN_CLASSIFY_SAMPLE_RANDOM_OFFSET, TRAIN_CLASSIFY_SAMPLE_RANDOM_OFFSET)
             ])
 
-            X[b,:,:,:,0] = get_block(record, around_tumor=True, random_offset=random_offset, shape=shape)
+            X[b, :, :, :, 0] = get_block(record, around_tumor=True, random_offset=random_offset, shape=shape)
             y[b, 0] = 1
 
-            idx = idx + 1 if idx < tumor_records.shape[0] - 1 else 0
+            idx = idx + 1 if idx < records.shape[0] - 1 else 0
 
         for b in range(positive_num, batch_size):
-            record = tumor_records.iloc[random.randint(0, tumor_records.shape[0] - 1)]
-            X[b,:,:,:,0] = get_block(record, around_tumor=False, shape=shape)
-            y[b,1] = 1
+            record = records.iloc[random.randint(0, records.shape[0] - 1)]
+            X[b, :, :, :, 0] = get_block(record, around_tumor=False, shape=shape)
+            y[b, 1] = 1
 
         yield X, y

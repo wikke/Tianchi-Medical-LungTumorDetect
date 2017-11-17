@@ -1,10 +1,10 @@
 from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping
 from config import *
 from generators import get_classify_batch
-from VGG_model import get_simplified_VGG_classifier, get_full_VGG_classifier
-from Inception_model import get_Inception_classifier
-from DenseNet_model import get_DenseNet_classifier
-from ResNet_model import get_ResNet_classifier
+from model_VGG import get_simplified_VGG_classifier, get_full_VGG_classifier
+from model_Inception import get_Inception_classifier
+from model_DenseNet import get_DenseNet_classifier
+from model_ResNet import get_ResNet_classifier
 import time
 
 def classify_train():

@@ -1,5 +1,5 @@
 from keras.callbacks import TensorBoard, ModelCheckpoint, EarlyStopping
-from seg_model import get_unet, UNetEvaluator
+from model_UNet import get_unet, UNetEvaluator
 from config import *
 from generators import get_seg_batch
 import time

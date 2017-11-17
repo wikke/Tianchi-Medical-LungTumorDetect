@@ -186,8 +186,6 @@ def make_seg_mask(record, create_mask=True, random_offset=(0, 0, 0)):
 
     return mask
 
-# 1:3比例
-
 def get_classify_batch(batch_size=32, from_train=True, random_choice=False):
     idx = 0
     records = tumor_records_train if from_train else tumor_records_val

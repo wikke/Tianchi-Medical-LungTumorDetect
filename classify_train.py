@@ -23,7 +23,7 @@ def classify_train():
 
     model.summary()
 
-    run = '{}-{}'.format(time.localtime().tm_hour, time.localtime().tm_min)
+    run = '{}-{}-{}'.format(TRAIN_CLASSIFY_MODEL, time.localtime().tm_hour, time.localtime().tm_min)
     log_dir = CLASSIFY_LOG_DIR.format(run)
     check_point = log_dir + '/checkpoint-{epoch:02d}-{val_loss:.4f}.hdf5'
 

@@ -67,6 +67,10 @@ if tumor_records_len == 0:
     print('no tumor records, generator cannot work')
     exit()
 
+if RANDOMIZE_RECORDS:
+    tumor_records = tumor_records.iloc[np.random.permutation(tumor_records_len)]
+    print('tumor_records_train randomized')
+
 tumor_records_train = tumor_records[:int(tumor_records_len * TRAIN_VAL_RATIO)]
 tumor_records_val = tumor_records[int(tumor_records_len * TRAIN_VAL_RATIO):]
 del tumor_records, tumor_records_len
@@ -87,10 +91,6 @@ if re_sample:
     tumor_records_train = pd.concat(concats, axis=0)
 
     print('after resample, got {} samples'.format(tumor_records_train.shape[0]))
-
-if RANDOMIZE_RECORDS:
-    tumor_records_train = tumor_records_train.iloc[np.random.permutation(tumor_records_train.shape[0])]
-    print('tumor_records_train randomized')
 
 # random_offset works iff around_tumor=True
 def get_block(record, around_tumor=True, random_offset=(0, 0, 0), shape=(INPUT_WIDTH, INPUT_HEIGHT, INPUT_DEPTH)):

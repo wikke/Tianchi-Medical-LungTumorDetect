@@ -19,7 +19,7 @@
 - train_segmentation.py # Step 2, segmentation with UNet Model
 - model_UNet.py # UNet model definition
 
-- train_classificaion.py # Step 3, classificaiton with VGG/Inception/ResNet/DenseNet
+- train_classification.py # Step 3, classification with VGG/Inception/ResNet/DenseNet
 - model_VGG.py # VGG model definition
 - model_Inception.py # Inception model definition
 - model_ResNet.py # ResNet model definition
@@ -44,7 +44,7 @@
     - regions
     - closing
     - dilation
-- collect all meta information(seriesuid, shape, file_path, origin, spacing, coordinates, cover_ratio, etc.) and store in **ONE** cache file for fast training init.
+- collect all meta information (seriesuid, shape, file_path, origin, spacing, coordinates, cover_ratio, etc.) and store in **ONE** cache file for fast training init.
 - see preprocessing in `/train_ipynbs/preprocess.ipynb` file
 
 Distribution of the lung part takes on a whole CT.
@@ -104,7 +104,7 @@ Pictures tells that: **hyperparameter tunning really matters**.
 
 - `DenseNet` draws tons of experience from origin paper. [https://arxiv.org/abs/1608.06993](https://arxiv.org/abs/1608.06993)
     - 3 dense\_block with 5 bn\_relu\_conv layers according to paper. 
-    - transition\_block after every dense\_block, expcet the last one.
+    - transition\_block after every dense\_block, except the last one.
     - Optional config for **DenseNet-BC**(paper called it): **1\*1\*1 depth-size seperable conv**, and **transition_block compression**.
 
 <img src='./assets/DenseNet.png'>
